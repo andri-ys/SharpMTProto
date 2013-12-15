@@ -4,6 +4,8 @@
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
+using MTProtoSchema;
+
 namespace SharpMTProto
 {
     public class MTProtoClient : ITLMethods
@@ -44,6 +46,11 @@ namespace SharpMTProto
         }
 
         public DestroySessionRes destroy_session(destroy_session args)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public void http_wait(http_wait args)
         {
             throw new System.NotImplementedException();
         }

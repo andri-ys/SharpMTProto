@@ -6,5 +6,5 @@
 
 using System.Reflection;
 
-[assembly: AssemblyTitle("SharpMTProto")]
-[assembly: AssemblyDescription("MTProto library.")]
+[assembly: AssemblyTitle("SharpMTProto.Tests.NET45")]
+[assembly: AssemblyDescription("")]

@@ -4,55 +4,69 @@
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
+using System;
+using BigMath;
+using Catel;
+using Catel.Logging;
 using MTProtoSchema;
+using SharpMTProto.Annotations;
 
 namespace SharpMTProto
 {
-    public class MTProtoClient : ITLMethods
+    /// <summary>
+    ///     MTProto client.
+    /// </summary>
+    [UsedImplicitly]
+    public class MTProtoClient : IDisposable
     {
-        public ResPQ req_pq(req_pq args)
+        private static readonly ILog Log = LogManager.GetCurrentClassLogger();
+        private bool _isDisposed;
+        private IMTProtoProxy _mtProtoProxy;
+
+        public MTProtoClient([NotNull] IMTProtoProxy mtProtoProxy)
         {
-            throw new System.NotImplementedException();
+            Argument.IsNotNull(() => mtProtoProxy);
+
+            _mtProtoProxy = mtProtoProxy;
         }
 
-        public Server_DH_Params req_DH_params(req_DH_params args)
+        public void CreateAuthKey(Int128 nonce)
         {
-            throw new System.NotImplementedException();
+            Log.Info(string.Format("Creating auth key with nonce 0x{0:X}.", nonce));
+            try
+            {
+                var resPQ = _mtProtoProxy.req_pq(new req_pq {nonce = nonce}) as resPQ;
+            }
+            catch (MTProtoException e)
+            {
+                Log.Error(e);
+            }
         }
 
-        public Set_client_DH_params_answer set_client_DH_params(set_client_DH_params args)
+        #region Disposable
+        public void Dispose()
         {
-            throw new System.NotImplementedException();
+            Dispose(true);
         }
 
-        public RpcDropAnswer rpc_drop_answer(rpc_drop_answer args)
+        protected virtual void Dispose(bool isDisposing)
         {
-            throw new System.NotImplementedException();
-        }
+            if (_isDisposed)
+            {
+                return;
+            }
 
-        public FutureSalts get_future_salts(get_future_salts args)
-        {
-            throw new System.NotImplementedException();
-        }
+            _isDisposed = true;
 
-        public Pong ping(ping args)
-        {
-            throw new System.NotImplementedException();
+            if (isDisposing)
+            {
+                if (_mtProtoProxy != null)
+                {
+                    _mtProtoProxy.Dispose();
+                    _mtProtoProxy = null;
+                }
+            }
         }
-
-        public Pong ping_delay_disconnect(ping_delay_disconnect args)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public DestroySessionRes destroy_session(destroy_session args)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public void http_wait(http_wait args)
-        {
-            throw new System.NotImplementedException();
-        }
+        #endregion
     }
 }

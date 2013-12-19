@@ -30,8 +30,14 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Catel.Core">
+      <HintPath>..\packages\Catel.Core.3.8.1\lib\net45\Catel.Core.dll</HintPath>
+    </Reference>
     <Reference Include="FluentAssertions">
       <HintPath>..\packages\FluentAssertions.2.1.0.0\lib\net45\FluentAssertions.dll</HintPath>
+    </Reference>
+    <Reference Include="Moq">
+      <HintPath>..\packages\Moq.4.2.1312.1416\lib\net40\Moq.dll</HintPath>
     </Reference>
     <Reference Include="nunit.framework">
       <HintPath>..\packages\NUnit.2.6.3\lib\nunit.framework.dll</HintPath>
@@ -49,7 +55,10 @@
       <Link>Properties\CommonAssemblyInfo.cs</Link>
     </Compile>
     <Compile Include="MTProtoClientFacts.cs" />
+    <Compile Include="MTProtoConnectionFacts.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TestData.cs" />
+    <Compile Include="UnencryptedMessageFacts.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -58,6 +67,10 @@
     <ProjectReference Include="..\..\..\SharpTL\BigMath\src\BigMath\BigMath.PCL\BigMath.PCL.csproj">
       <Project>{E57078C6-C6A2-4A24-8983-840ACE910680}</Project>
       <Name>BigMath.PCL</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\SharpTL\src\SharpTL\SharpTL.PCL\SharpTL.PCL.csproj">
+      <Project>{4172EE09-143E-425F-AB10-99DB1D41A645}</Project>
+      <Name>SharpTL.PCL</Name>
     </ProjectReference>
     <ProjectReference Include="..\SharpMTProto.PCL\SharpMTProto.PCL.csproj">
       <Project>{01CF01F4-7C2A-4A92-AF21-EE35A90B36F8}</Project>

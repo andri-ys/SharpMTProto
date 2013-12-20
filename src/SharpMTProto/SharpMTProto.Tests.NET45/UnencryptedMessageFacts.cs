@@ -19,7 +19,7 @@ namespace SharpMTProto.Tests
         {
             const ulong messageId = 0x0102030405060708UL;
             byte[] messageData = Enumerable.Range(0, 255).Select(i => (byte) i).ToArray();
-            byte[] messageBytes = ("0x0000000000000000" + "0807060504030201" + "000000FF").ToByteArray().Concat(messageData).ToArray();
+            byte[] messageBytes = ("0x0000000000000000" + "0807060504030201" + "000000FF").ToBytes().Concat(messageData).ToArray();
 
             var message = new UnencryptedMessage(messageId, messageData);
 

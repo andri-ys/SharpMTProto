@@ -58,6 +58,7 @@
     <Compile Include="MTProtoConnectionFacts.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TestData.cs" />
+    <Compile Include="TestsSetup.cs" />
     <Compile Include="UnencryptedMessageFacts.cs" />
   </ItemGroup>
   <ItemGroup>

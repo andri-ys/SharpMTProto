@@ -8,10 +8,12 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using BigMath.Utils;
 using Catel;
 using Catel.Logging;
 using SharpMTProto.Annotations;
 using SharpMTProto.Utils;
+using SharpTL;
 
 namespace SharpMTProto
 {
@@ -21,16 +23,17 @@ namespace SharpMTProto
     public class MTProtoConnection : IMTProtoConnection
     {
         private static readonly ILog Log = LogManager.GetCurrentClassLogger();
+        private readonly Queue<IMessage> _inboxMessages = new Queue<IMessage>();
+        private readonly object _ingoingMessagesSyncRoot = new object();
         private readonly Queue<IMessage> _outboxMessages = new Queue<IMessage>();
-
         private readonly object _outgoingMessagesSyncRoot = new object();
-
         private readonly Stack<IMessage> _sentMessages = new Stack<IMessage>();
         private IConnector _connector;
+        private CancellationToken _inOutCancellationToken;
+        private CancellationTokenSource _inOutCts;
         private bool _isDisposed;
         private ulong _lastMessageId;
-        private CancellationToken _senderCancellationToken;
-        private CancellationTokenSource _senderCts;
+        private Task _receiverTask;
         private Task _senderTask;
 
         public MTProtoConnection([NotNull] IConnector connector)
@@ -39,10 +42,8 @@ namespace SharpMTProto
 
             _connector = connector;
 
-            _senderCts = new CancellationTokenSource();
-            _senderCancellationToken = _senderCts.Token;
-
-            StartSender();
+            _inOutCts = new CancellationTokenSource();
+            _inOutCancellationToken = _inOutCts.Token;
         }
 
         public UnencryptedMessage SendUnencryptedMessage(byte[] messageData)
@@ -65,52 +66,209 @@ namespace SharpMTProto
             Dispose(true);
         }
 
+        /// <summary>
+        ///     Start sender and receiver tasks.
+        /// </summary>
+        public void Open()
+        {
+            StartSender();
+            StartReceiver();
+        }
+
         private void StartSender()
         {
-            Log.Info("Starting MTProto connection sender.");
-
             if (_senderTask != null && !_senderTask.IsCompleted)
             {
-                Log.Info("Sender al");
+                Log.Info("Sender already started. Ignoring start request.");
                 return;
             }
 
+            if (_connector.OutStream == null)
+            {
+                Log.Info("Connector does NOT support out stream.");
+                return;
+            }
+
+            Log.Info("Starting MTProto connection sender.");
+
             _senderTask = new Task(async () =>
             {
-                while (!_senderCancellationToken.IsCancellationRequested)
+                Log.Info("Sender started. Waiting for messages in the outbox queue...");
+                TLStreamer streamer = null;
+                try
                 {
-                    await Task.Yield();
-                    IMessage messageToSent;
-                    lock (_outgoingMessagesSyncRoot)
+                    streamer = new TLStreamer(_connector.OutStream, true);
+                    while (!_inOutCancellationToken.IsCancellationRequested)
                     {
-                        if (_outboxMessages.Count == 0)
-                        {
-                            continue;
-                        }
-                        messageToSent = _outboxMessages.Peek();
-                    }
-                    bool wasSent = false;
-                    try
-                    {
-                        _connector.SendData(messageToSent.MessageBytes);
-                        wasSent = true;
-                    }
-                    catch (Exception e)
-                    {
-                        Log.Error(e, "Failed to send a message.");
-                    }
-                    if (wasSent)
-                    {
+                        IMessage messageToSent = null;
                         lock (_outgoingMessagesSyncRoot)
                         {
-                            _outboxMessages.Dequeue();
-                            _sentMessages.Push(messageToSent);
+                            if (_outboxMessages.Count > 0)
+                            {
+                                messageToSent = _outboxMessages.Peek();
+                            }
+                        }
+                        if (messageToSent == null)
+                        {
+                            await Task.Delay(10, _inOutCancellationToken);
+                            continue;
+                        }
+                        bool wasSent = false;
+                        try
+                        {
+                            Log.Info("Sending message from the outbox queue...");
+
+                            await streamer.WriteAsync(messageToSent.MessageBytes, 0, messageToSent.MessageBytes.Length, _inOutCancellationToken);
+
+                            wasSent = true;
+                            Log.Info(string.Format("Sent unencrypted message ({0} bytes): {1}", messageToSent.Length,
+                                messageToSent.MessageBytes.ToHexaString(spaceEveryByte: true)));
+                        }
+                        catch (Exception e)
+                        {
+                            Log.Error(e, "Failed to send a message.");
+                        }
+                        if (wasSent)
+                        {
+                            lock (_outgoingMessagesSyncRoot)
+                            {
+                                _outboxMessages.Dequeue();
+                                _sentMessages.Push(messageToSent);
+                            }
                         }
                     }
                 }
-            }, _senderCancellationToken, TaskCreationOptions.LongRunning);
+                catch (OperationCanceledException)
+                {
+                    Log.Info(string.Format("Sender task has canceled."));
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e, "Sender corrupted.");
+                }
+                finally
+                {
+                    if (streamer != null)
+                    {
+                        streamer.Dispose();
+                    }
+                    Log.Info(string.Format("Sender stopped."));
+                }
+            }, _inOutCancellationToken, TaskCreationOptions.LongRunning);
 
             _senderTask.Start();
+        }
+
+        /// <summary>
+        ///     Starts receiver.
+        /// </summary>
+        protected virtual void StartReceiver()
+        {
+            if (_receiverTask != null && !_receiverTask.IsCompleted)
+            {
+                Log.Info("Receiver already started. Ignoring start request.");
+                return;
+            }
+
+            if (_connector.InStream == null)
+            {
+                Log.Info("Connector does NOT support in stream.");
+                return;
+            }
+
+            Log.Info("Starting MTProto connection receiver...");
+
+            _receiverTask = new Task(async () =>
+            {
+                Log.Info("Receiver started. Waiting for incoming message...");
+                try
+                {
+                    using (var streamer = new TLStreamer(_connector.InStream, true))
+                    {
+                        while (!_inOutCancellationToken.IsCancellationRequested)
+                        {
+                            try
+                            {
+                                if (streamer.Position == streamer.Length)
+                                {
+                                    await Task.Delay(10, _inOutCancellationToken);
+                                    continue;
+                                }
+                                ulong authKeyId = streamer.ReadULong();
+                                Log.Info(string.Format("Received message with auth key ID = [0x{0:X16}].", authKeyId));
+                                if (authKeyId == 0)
+                                {
+                                    // Assume the stream has an unencrypted message.
+                                    Log.Info("Auth key ID is zero, hence assume this is an unencrypted message.");
+
+                                    // Reading message ID.
+                                    ulong messageId = streamer.ReadULong();
+                                    if (!IsIncomingMessageIdValid(messageId))
+                                    {
+                                        throw new InvalidMessageException(string.Format("Message ID [0x{0:X16}] is invalid.", messageId));
+                                    }
+
+                                    // Reading message data length.
+                                    int messageDataLength = streamer.ReadInt();
+                                    if (messageDataLength == 0)
+                                    {
+                                        throw new InvalidMessageException("Message data length must be greater than zero.");
+                                    }
+
+                                    // Reading message data.
+                                    var messageData = new byte[messageDataLength];
+                                    int read = await streamer.ReadAsync(messageData, 0, messageDataLength, _inOutCancellationToken);
+                                    if (read != messageDataLength)
+                                    {
+                                        throw new InvalidMessageException(string.Format("Actual message data length ({0}) is not as expected ({1}).", read,
+                                            messageDataLength));
+                                        // TODO: read message data if read is less than expected.
+                                    }
+
+                                    // Enqueuing  message to the inbox.
+                                    var message = new UnencryptedMessage(messageId, messageData);
+                                    lock (_ingoingMessagesSyncRoot)
+                                    {
+                                        _inboxMessages.Enqueue(message);
+                                    }
+
+                                    Log.Info(string.Format("Received unencrypted message ({0} bytes): {1}", message.Length,
+                                        message.MessageBytes.ToHexaString(spaceEveryByte: true)));
+                                }
+                                else
+                                {
+                                    // Assume the stream has an encrypted message.
+                                    Log.Info("Received encrypted message. (NOT supported yet).");
+                                }
+                            }
+                            catch (InvalidMessageException e)
+                            {
+                                Log.Error(e, "Failed to receive a message.");
+                            }
+                        }
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    Log.Info(string.Format("Receiver task has canceled."));
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e, "Receiver corrupted.");
+                }
+                finally
+                {
+                    Log.Info(string.Format("Receiver stopped."));
+                }
+            }, _inOutCancellationToken, TaskCreationOptions.LongRunning);
+
+            _receiverTask.Start();
+        }
+
+        private bool IsIncomingMessageIdValid(ulong messageId)
+        {
+            // TODO: check.
+            return true;
         }
 
         private ulong GetNextMessageId()
@@ -142,19 +300,38 @@ namespace SharpMTProto
 
             if (isDisposing)
             {
-                _senderCts.Cancel();
+                _inOutCts.Cancel();
 
                 try
                 {
-                    _senderTask.Wait(1000);
+                    if (_senderTask != null)
+                    {
+                        _senderTask.Wait();
+                        _senderTask = null;
+                    }
+                    if (_receiverTask != null)
+                    {
+                        _receiverTask.Wait();
+                        _receiverTask = null;
+                    }
                 }
-                catch (Exception e)
+                catch (AggregateException aex)
                 {
-                    Log.Error(e, "Error while waiting for sender task cancellation.");
+                    foreach (Exception iex in aex.InnerExceptions)
+                    {
+                        if (iex is OperationCanceledException)
+                        {
+                            Log.Info(iex);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "Error while waiting for sender task cancellation.");
                 }
 
-                _senderCts.Dispose();
-                _senderCts = null;
+                _inOutCts.Dispose();
+                _inOutCts = null;
 
                 // ReSharper disable once SuspiciousTypeConversion.Global
                 var dCon = _connector as IDisposable;

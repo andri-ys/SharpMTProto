@@ -8,6 +8,7 @@ namespace SharpMTProto
 {
     public interface IMessage
     {
+        int Length { get; }
         byte[] MessageBytes { get; }
     }
 }

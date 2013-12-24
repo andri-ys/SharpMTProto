@@ -36,15 +36,15 @@ namespace SharpMTProto
             _length = HeaderLength + dataLength;
             _messageBytes = new byte[_length];
 
-            using (var streamer = new TLStreamer(MessageBytes))
+            using (var streamer = new TLStreamer(_messageBytes))
             {
                 // Writing header.
                 streamer.WriteLong(0); // Unencrypted message must always have zero auth key id.
-                streamer.WriteULong(MessageId);
-                streamer.WriteInt(DataLength);
+                streamer.WriteULong(_messageId);
+                streamer.WriteInt(_dataLength);
 
                 // Writing data.
-                streamer.Write(messageData, 0, DataLength);
+                streamer.Write(messageData, 0, _dataLength);
             }
         }
 

@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="IMTProtoConnectionManager.cs">
+// <copyright file="IConnectorFactory.cs">
 //   Copyright (c) 2013 Alexander Logger. All rights reserved.
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
@@ -7,14 +7,14 @@
 namespace SharpMTProto
 {
     /// <summary>
-    ///     Interface for MTProto connection manager. Allows to create new connections.
+    ///     Interface for connector factory. Allows to create new connectors.
     /// </summary>
-    public interface IMTProtoConnectionManager
+    public interface IConnectorFactory
     {
         /// <summary>
-        ///     Creates a new connection.
+        ///     Creates a new connector.
         /// </summary>
-        /// <returns>MTProto connection.</returns>
-        IMTProtoConnection CreateConnection();
+        /// <returns>Connector.</returns>
+        IConnector CreateConnector();
     }
 }

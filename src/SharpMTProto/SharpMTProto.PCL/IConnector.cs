@@ -4,7 +4,10 @@
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
-using System.IO;
+using System;
+using System.Reactive.Subjects;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace SharpMTProto
 {
@@ -14,15 +17,11 @@ namespace SharpMTProto
         Connected = 1
     }
 
-    public interface IConnector
+    public interface IConnector : ISubject<byte[]>, IDisposable
     {
         bool IsConnected { get; }
-
-        Stream InStream { get; }
-
-        Stream OutStream { get; }
-
         ConnectorState State { get; }
-        void Connect();
+        Task Connect(TimeSpan timeout);
+        Task Connect(TimeSpan timeout, CancellationToken token);
     }
 }

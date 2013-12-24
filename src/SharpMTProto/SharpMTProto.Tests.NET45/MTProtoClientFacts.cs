@@ -4,8 +4,12 @@
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive.Subjects;
+using System.Threading;
+using System.Threading.Tasks;
 using Catel.IoC;
 using Catel.Logging;
 using FluentAssertions;
@@ -22,7 +26,7 @@ namespace SharpMTProto.Tests
         [SetUp]
         public void SetUp()
         {
-            LogManager.AddDebugListener();
+            LogManager.AddDebugListener(true);
 
             _serviceLocator = ServiceLocator.Default;
             _typeFactory = TypeFactory.Default;
@@ -32,48 +36,25 @@ namespace SharpMTProto.Tests
         private ITypeFactory _typeFactory;
 
         [Test]
-        public void Should_create_auth_key()
+        public async Task Should_create_auth_key()
         {
-            var mockConnection = new Mock<IMTProtoConnection>();
-            mockConnection.Setup(connection => connection.SendUnencryptedMessage(It.Is<byte[]>(bytes => bytes.SequenceEqual(TestData.ReqPQBytes)))).Verifiable();
-            mockConnection.Setup(connection => connection.ReceiveUnencryptedMessage()).Returns(() => TestData.ResPQBytes).Verifiable();
+            var inConnector = new Subject<byte[]>();
+            var mockConnector = new Mock<IConnector>();
+            mockConnector.Setup(connector => connector.Subscribe(It.IsAny<IObserver<byte[]>>())).Callback<IObserver<byte[]>>(observer => inConnector.Subscribe(observer));
+            mockConnector.Setup(connector => connector.OnNext(TestData.ReqPQBytes)).Callback(() => inConnector.OnNext(TestData.ResPQBytes));
 
-            var mockConnectionManager = new Mock<IMTProtoConnectionManager>();
-            mockConnectionManager.Setup(manager => manager.CreateConnection()).Returns(() => mockConnection.Object).Verifiable();
-
-            _serviceLocator.RegisterInstance(mockConnectionManager.Object);
+            _serviceLocator.RegisterInstance(Mock.Of<IConnectorFactory>(factory => factory.CreateConnector() == mockConnector.Object));
             _serviceLocator.RegisterInstance(TLRig.Default);
-            _serviceLocator.RegisterType<IMTProtoProxy, MTProtoProxy>(RegistrationType.Transient);
+            _serviceLocator.RegisterInstance(Mock.Of<IMessageIdGenerator>(generator => generator.GetNextMessageId() == TestData.MessageId1));
+            _serviceLocator.RegisterType<IMTProtoConnection, MTProtoConnection>();
+            
+            var connection = _serviceLocator.ResolveType<IMTProtoConnection>();
+            connection.DefaultRpcTimeout = TimeSpan.FromSeconds(5);
 
             var client = _typeFactory.CreateInstance<MTProtoClient>();
-
-            client.CreateAuthKey(TestData.Nonce);
-
-            mockConnection.Verify();
-        }
-
-        [Test]
-        public void Should_req_pq()
-        {
-            var mockConnection = new Mock<IMTProtoConnection>();
-            mockConnection.Setup(c => c.SendUnencryptedMessage(It.Is<byte[]>(bytes => bytes.SequenceEqual(TestData.ReqPQBytes)))).Verifiable();
-            mockConnection.Setup(c => c.ReceiveUnencryptedMessage()).Returns(() => TestData.ResPQBytes).Verifiable();
-
-            var mockConnectionManager = new Mock<IMTProtoConnectionManager>();
-            mockConnectionManager.Setup(manager => manager.CreateConnection()).Returns(() => mockConnection.Object).Verifiable();
-
-            ServiceLocator.Default.RegisterInstance(mockConnectionManager.Object);
-            ServiceLocator.Default.RegisterInstance(TLRig.Default);
-            ServiceLocator.Default.RegisterType<IMTProtoProxy, MTProtoProxy>(RegistrationType.Transient);
-
-            var proxy = ServiceLocator.Default.ResolveType<IMTProtoProxy>();
-
-            var resPq = proxy.req_pq(TestData.ReqPQ) as resPQ;
-
-            resPq.Should().NotBeNull();
-            resPq.ShouldBeEquivalentTo(TestData.ResPQ);
-
-            mockConnection.Verify();
+            
+            var authKey = await client.CreateAuthKey(TestData.Nonce);
+            authKey.ShouldAllBeEquivalentTo(TestData.AuthKey);
         }
     }
 }

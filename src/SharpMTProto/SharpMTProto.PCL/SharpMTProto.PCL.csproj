@@ -85,14 +85,12 @@
     <Compile Include="Exceptions.cs" />
     <Compile Include="IConnector.cs" />
     <Compile Include="IMessage.cs" />
-    <Compile Include="IMTProtoConnectionManager.cs" />
+    <Compile Include="IConnectorFactory.cs" />
     <Compile Include="IMTProtoConnection.cs" />
-    <Compile Include="IMTProtoProxy.cs" />
+    <Compile Include="MessageIdGenerator.cs" />
     <Compile Include="MTProtoClient.cs" />
     <Compile Include="MTProtoConnection.cs" />
-    <Compile Include="MTProtoConnectionManager.cs" />
     <Compile Include="MTProtoSchema.cs" />
-    <Compile Include="MTProtoProxy.cs" />
     <Compile Include="Properties\Annotations.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="UnencryptedMessage.cs" />
@@ -101,6 +99,21 @@
   <ItemGroup>
     <Reference Include="Catel.Core">
       <HintPath>..\packages\Catel.Core.3.8.1\lib\portable-net45+sl5+wp8+win8\Catel.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="Nito.AsyncEx">
+      <HintPath>..\packages\Nito.AsyncEx.2.1.3\lib\portable-net45+win8+wp8+MonoTouch+MonoAndroid\Nito.AsyncEx.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Reactive.Core">
+      <HintPath>..\packages\Rx-Core.2.2.2\lib\portable-windows8+net45+wp8\System.Reactive.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Reactive.Interfaces">
+      <HintPath>..\packages\Rx-Interfaces.2.2.2\lib\portable-windows8+net45+wp8\System.Reactive.Interfaces.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Reactive.Linq">
+      <HintPath>..\packages\Rx-Linq.2.2.2\lib\portable-windows8+net45+wp8\System.Reactive.Linq.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Reactive.PlatformServices">
+      <HintPath>..\packages\Rx-PlatformServices.2.2.2\lib\portable-windows8+net45+wp8\System.Reactive.PlatformServices.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

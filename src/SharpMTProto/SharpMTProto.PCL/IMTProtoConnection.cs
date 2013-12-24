@@ -5,13 +5,47 @@
 // --------------------------------------------------------------------------------------------------------------------
 
 using System;
+using System.Threading.Tasks;
+using MTProtoSchema;
 
 namespace SharpMTProto
 {
-    public interface IMTProtoConnection : IDisposable
+    public interface IMTProtoConnection : ITLAsyncMethods, IDisposable
     {
-        UnencryptedMessage SendUnencryptedMessage(byte[] messageData);
-        byte[] ReceiveUnencryptedMessage();
-        void Close();
+        IObservable<IMessage> InMessagesHistory { get; }
+        IObservable<IMessage> OutMessagesHistory { get; }
+        MTProtoConnectionState State { get; }
+        bool IsConnected { get; }
+        TimeSpan DefaultRpcTimeout { get; set; }
+        TimeSpan DefaultConnectTimeout { get; set; }
+        void SendUnencryptedMessage(UnencryptedMessage message);
+        void SendUnencryptedMessage(byte[] messageData);
+
+        /// <summary>
+        ///     Sends unencrypted message and waits for a response.
+        /// </summary>
+        /// <typeparam name="TResponse">Type of the response which will be awaited.</typeparam>
+        /// <param name="requestMessageData">Request message data.</param>
+        /// <param name="timeout">Timeout.</param>
+        /// <returns>Response.</returns>
+        /// <exception cref="TimeoutException">When response is not captured within a specified timeout.</exception>
+        Task<TResponse> SendUnencryptedMessageAndWaitForResponse<TResponse>(object requestMessageData, TimeSpan timeout) where TResponse : class;
+
+        Task Disconnect();
+        Task<MTProtoConnectResult> Connect();
+    }
+
+    public enum MTProtoConnectionState
+    {
+        Disconnected = 0,
+        Connecting = 1,
+        Connected = 2
+    }
+
+    public enum MTProtoConnectResult
+    {
+        Success,
+        Timeout,
+        Other
     }
 }

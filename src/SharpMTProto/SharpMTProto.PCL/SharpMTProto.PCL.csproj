@@ -91,6 +91,7 @@
     <Compile Include="MTProtoClient.cs" />
     <Compile Include="MTProtoConnection.cs" />
     <Compile Include="MTProtoSchema.cs" />
+    <Compile Include="NonceGenerator.cs" />
     <Compile Include="Properties\Annotations.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="UnencryptedMessage.cs" />

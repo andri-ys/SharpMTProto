@@ -27,15 +27,13 @@ namespace SharpMTProto.Tests
         public void SetUp()
         {
             LogManager.AddDebugListener(true);
-
-            _serviceLocator = ServiceLocator.Default;
         }
-
-        private IServiceLocator _serviceLocator;
 
         [Test]
         public async Task Should_send_and_receive_unencrypted_message()
         {
+            IServiceLocator serviceLocator = new ServiceLocator();
+
             byte[] messageData = Enumerable.Range(0, 255).Select(i => (byte) i).ToArray();
             byte[] expectedMessageBytes = "00000000000000000807060504030201FF000000".ToBytes().Concat(messageData).ToArray();
 
@@ -47,11 +45,11 @@ namespace SharpMTProto.Tests
             var mockConnectionFactory = new Mock<IConnectorFactory>();
             mockConnectionFactory.Setup(manager => manager.CreateConnector()).Returns(() => mockConnector.Object).Verifiable();
 
-            _serviceLocator.RegisterInstance(mockConnectionFactory.Object);
-            _serviceLocator.RegisterInstance(TLRig.Default);
-            _serviceLocator.RegisterType<IMTProtoConnection, MTProtoConnection>(RegistrationType.Transient);
+            serviceLocator.RegisterInstance(mockConnectionFactory.Object);
+            serviceLocator.RegisterInstance(TLRig.Default);
+            serviceLocator.RegisterType<IMTProtoConnection, MTProtoConnection>(RegistrationType.Transient);
 
-            using (var connection = _serviceLocator.ResolveType<IMTProtoConnection>())
+            using (var connection = serviceLocator.ResolveType<IMTProtoConnection>())
             {
                 await connection.Connect();
 
@@ -78,6 +76,8 @@ namespace SharpMTProto.Tests
         [Test]
         public async Task Should_send_and_wait_for_response()
         {
+            IServiceLocator serviceLocator = new ServiceLocator();
+
             var request = new TestRequest {TestId = 9};
             var expectedResponse = new TestResponse {TestId = 9, TestText = "Number 1"};
             var expectedResponseMessage = new UnencryptedMessage(0x0102030405060708, TLRig.Default.Serialize(expectedResponse));
@@ -91,11 +91,11 @@ namespace SharpMTProto.Tests
             var mockConnectionFactory = new Mock<IConnectorFactory>();
             mockConnectionFactory.Setup(manager => manager.CreateConnector()).Returns(() => mockConnector.Object).Verifiable();
 
-            _serviceLocator.RegisterInstance(mockConnectionFactory.Object);
-            _serviceLocator.RegisterInstance(TLRig.Default);
-            _serviceLocator.RegisterType<IMTProtoConnection, MTProtoConnection>(RegistrationType.Transient);
+            serviceLocator.RegisterInstance(mockConnectionFactory.Object);
+            serviceLocator.RegisterInstance(TLRig.Default);
+            serviceLocator.RegisterType<IMTProtoConnection, MTProtoConnection>(RegistrationType.Transient);
 
-            using (var connection = _serviceLocator.ResolveType<IMTProtoConnection>())
+            using (var connection = serviceLocator.ResolveType<IMTProtoConnection>())
             {
                 await connection.Connect();
 
@@ -115,18 +115,20 @@ namespace SharpMTProto.Tests
         [Test]
         public void Should_throw_on_response_timeout()
         {
+            IServiceLocator serviceLocator = new ServiceLocator();
+
             var mockConnector = new Mock<IConnector>();
 
             var mockConnectionFactory = new Mock<IConnectorFactory>();
             mockConnectionFactory.Setup(manager => manager.CreateConnector()).Returns(() => mockConnector.Object).Verifiable();
 
-            _serviceLocator.RegisterInstance(mockConnectionFactory.Object);
-            _serviceLocator.RegisterInstance(TLRig.Default);
-            _serviceLocator.RegisterType<IMTProtoConnection, MTProtoConnection>(RegistrationType.Transient);
+            serviceLocator.RegisterInstance(mockConnectionFactory.Object);
+            serviceLocator.RegisterInstance(TLRig.Default);
+            serviceLocator.RegisterType<IMTProtoConnection, MTProtoConnection>(RegistrationType.Transient);
 
             var testAction = new Func<Task>(async () =>
             {
-                using (var connection = _serviceLocator.ResolveType<IMTProtoConnection>())
+                using (var connection = serviceLocator.ResolveType<IMTProtoConnection>())
                 {
                     await connection.Connect();
                     await connection.SendUnencryptedMessageAndWaitForResponse<TestResponse>(new TestRequest(), TimeSpan.FromSeconds(1));

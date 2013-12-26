@@ -49,10 +49,6 @@ namespace SharpMTProto
         private ReplaySubject<IMessage> _outMessagesHistory = new ReplaySubject<IMessage>(100);
         #endregion
 
-        public MTProtoConnection([NotNull] IConnectorFactory connectorFactory, [NotNull] TLRig tlRig) : this(connectorFactory, tlRig, new MessageIdGenerator())
-        {
-        }
-
         public MTProtoConnection([NotNull] IConnectorFactory connectorFactory, [NotNull] TLRig tlRig, [NotNull] IMessageIdGenerator messageIdGenerator)
         {
             Argument.IsNotNull(() => connectorFactory);
@@ -62,7 +58,7 @@ namespace SharpMTProto
             _connectorFactory = connectorFactory;
             _tlRig = tlRig;
             _messageIdGenerator = messageIdGenerator;
-
+            
             DefaultRpcTimeout = TimeSpan.FromSeconds(5);
             DefaultConnectTimeout = TimeSpan.FromSeconds(5);
         }

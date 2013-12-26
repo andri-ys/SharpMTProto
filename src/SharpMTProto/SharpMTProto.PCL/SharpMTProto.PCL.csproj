@@ -84,9 +84,13 @@
     </Compile>
     <Compile Include="Exceptions.cs" />
     <Compile Include="IConnector.cs" />
+    <Compile Include="IEncryptionServices.cs" />
+    <Compile Include="IHashServices.cs" />
     <Compile Include="IMessage.cs" />
     <Compile Include="IConnectorFactory.cs" />
     <Compile Include="IMTProtoConnection.cs" />
+    <Compile Include="Key.cs" />
+    <Compile Include="KeyChain.cs" />
     <Compile Include="MessageIdGenerator.cs" />
     <Compile Include="MTProtoClient.cs" />
     <Compile Include="MTProtoConnection.cs" />

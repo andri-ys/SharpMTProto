@@ -5,6 +5,7 @@
 // --------------------------------------------------------------------------------------------------------------------
 
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using BigMath;
 using BigMath.Utils;
@@ -12,6 +13,7 @@ using Catel;
 using Catel.Logging;
 using MTProtoSchema;
 using SharpMTProto.Annotations;
+using SharpTL;
 
 namespace SharpMTProto
 {
@@ -22,17 +24,27 @@ namespace SharpMTProto
     public class MTProtoClient : IDisposable
     {
         private static readonly ILog Log = LogManager.GetCurrentClassLogger();
+        private readonly IEncryptionServices _encryptionServices;
+        private readonly IHashServices _hashServices;
         private readonly INonceGenerator _nonceGenerator;
+        private readonly TLRig _tlRig;
         private IMTProtoConnection _connection;
         private bool _isDisposed;
 
-        public MTProtoClient([NotNull] IMTProtoConnection connection, [NotNull] INonceGenerator nonceGenerator)
+        public MTProtoClient([NotNull] IMTProtoConnection connection, [NotNull] TLRig tlRig, [NotNull] INonceGenerator nonceGenerator,
+            [NotNull] IHashServices hashServices, [NotNull] IEncryptionServices encryptionServices)
         {
             Argument.IsNotNull(() => connection);
+            Argument.IsNotNull(() => tlRig);
             Argument.IsNotNull(() => nonceGenerator);
+            Argument.IsNotNull(() => hashServices);
+            Argument.IsNotNull(() => encryptionServices);
 
             _connection = connection;
+            _tlRig = tlRig;
             _nonceGenerator = nonceGenerator;
+            _hashServices = hashServices;
+            _encryptionServices = encryptionServices;
         }
 
         public async Task<byte[]> CreateAuthKey()
@@ -70,6 +82,22 @@ namespace SharpMTProto
                     ServerNonce = resPQ.ServerNonce,
                     NewNonce = newNonce
                 };
+
+                byte[] data = _tlRig.Serialize(pqInnerData);
+                byte[] dataHash = _hashServices.ComputeSHA1(data);
+
+                Debug.Assert((dataHash.Length + data.Length) <= 255);
+
+                // data_with_hash := SHA1(data) + data + (any random bytes); such that the length equal 255 bytes;
+                var dataWithHash = new byte[255];
+                using (var streamer = new TLStreamer(dataWithHash))
+                {
+                    streamer.WriteAllBytes(dataHash);
+                    streamer.WriteAllBytes(data);
+                    streamer.WriteRandomDataTillEnd();
+                }
+
+//                _encryptionServices.RSAEncrypt(dataWithHash, )
             }
             catch (Exception e)
             {

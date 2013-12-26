@@ -70,6 +70,7 @@
     <Compile Include="..\CommonAssemblyInfo.cs">
       <Link>Properties\CommonAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="KeyChainFacts.cs" />
     <Compile Include="MTProtoClientFacts.cs" />
     <Compile Include="MTProtoConnectionFacts.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -88,6 +89,10 @@
     <ProjectReference Include="..\..\..\SharpTL\src\SharpTL\SharpTL.PCL\SharpTL.PCL.csproj">
       <Project>{4172EE09-143E-425F-AB10-99DB1D41A645}</Project>
       <Name>SharpTL.PCL</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\SharpMTProto.Extra.NET45\SharpMTProto.Extra.NET45.csproj">
+      <Project>{40d0389a-10fa-4709-a8b6-7074d929f72b}</Project>
+      <Name>SharpMTProto.Extra.NET45</Name>
     </ProjectReference>
     <ProjectReference Include="..\SharpMTProto.PCL\SharpMTProto.PCL.csproj">
       <Project>{01CF01F4-7C2A-4A92-AF21-EE35A90B36F8}</Project>

@@ -12,6 +12,7 @@ using Catel.Logging;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
+using SharpMTProto.Extra;
 using SharpTL;
 
 namespace SharpMTProto.Tests
@@ -40,8 +41,9 @@ namespace SharpMTProto.Tests
             serviceLocator.RegisterInstance(TLRig.Default);
             serviceLocator.RegisterInstance(TestData.MessageIdGenerator);
             serviceLocator.RegisterInstance(TestData.NonceGenerator);
-            serviceLocator.RegisterType<IMTProtoConnection, MTProtoConnection>();
-
+            serviceLocator.RegisterType<IHashServices, HashServices>();
+            serviceLocator.RegisterType<IMTProtoConnection, MTProtoConnection>(RegistrationType.Transient);
+            
             var connection = serviceLocator.ResolveType<IMTProtoConnection>();
             connection.DefaultRpcTimeout = TimeSpan.FromSeconds(5);
 

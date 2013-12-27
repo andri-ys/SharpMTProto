@@ -4,19 +4,20 @@
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
-using System.Security.Cryptography;
+using BigMath;
 
 namespace SharpMTProto.Extra
 {
     public class EncryptionServices : IEncryptionServices
     {
-        public byte[] RSAEncrypt(byte[] data, byte[] publicKey)
+        public byte[] RSAEncrypt(byte[] data, PublicKey publicKey)
         {
-            using(var rsa = new RSACryptoServiceProvider())
-            {
-                rsa.ImportCspBlob(publicKey);
-                return rsa.Encrypt(data, true);
-            }
+            var m = new BigInteger(publicKey.Modulus);
+            var e = new BigInteger(publicKey.Exponent);
+            var r = new BigInteger(data);
+            BigInteger s = BigInteger.ModPow(r, e, m);
+            byte[] temp = s.ToByteArray();
+            return temp;
         }
     }
 }

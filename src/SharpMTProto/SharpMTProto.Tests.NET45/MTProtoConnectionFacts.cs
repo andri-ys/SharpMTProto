@@ -35,7 +35,7 @@ namespace SharpMTProto.Tests
             IServiceLocator serviceLocator = new ServiceLocator();
 
             byte[] messageData = Enumerable.Range(0, 255).Select(i => (byte) i).ToArray();
-            byte[] expectedMessageBytes = "00000000000000000807060504030201FF000000".ToBytes().Concat(messageData).ToArray();
+            byte[] expectedMessageBytes = "00000000000000000807060504030201FF000000".HexToBytes().Concat(messageData).ToArray();
 
             var inConnector = new Subject<byte[]>();
 

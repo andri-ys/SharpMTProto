@@ -8,6 +8,6 @@ namespace SharpMTProto
 {
     public interface IEncryptionServices
     {
-        byte[] RSAEncrypt(byte[] data, byte[] publicKey);
+        byte[] RSAEncrypt(byte[] data, PublicKey publicKey);
     }
 }

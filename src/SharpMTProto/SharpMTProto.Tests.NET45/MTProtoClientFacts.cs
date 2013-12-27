@@ -36,14 +36,21 @@ namespace SharpMTProto.Tests
             var mockConnector = new Mock<IConnector>();
             mockConnector.Setup(connector => connector.Subscribe(It.IsAny<IObserver<byte[]>>())).Callback<IObserver<byte[]>>(observer => inConnector.Subscribe(observer));
             mockConnector.Setup(connector => connector.OnNext(TestData.ReqPQBytes)).Callback(() => inConnector.OnNext(TestData.ResPQBytes));
+            mockConnector.Setup(connector => connector.OnNext(TestData.ReqDHParamsBytes)).Callback(() => inConnector.OnNext(TestData.ServerDHParamsBytes));
 
             serviceLocator.RegisterInstance(Mock.Of<IConnectorFactory>(factory => factory.CreateConnector() == mockConnector.Object));
             serviceLocator.RegisterInstance(TLRig.Default);
-            serviceLocator.RegisterInstance(TestData.MessageIdGenerator);
-            serviceLocator.RegisterInstance(TestData.NonceGenerator);
+            serviceLocator.RegisterInstance<IMessageIdGenerator>(new TestMessageIdsGenerator());
+            serviceLocator.RegisterInstance<INonceGenerator>(new TestNonceGenerator());
             serviceLocator.RegisterType<IHashServices, HashServices>();
+            serviceLocator.RegisterInstance(
+                Mock.Of<IEncryptionServices>(services => services.RSAEncrypt(It.IsAny<byte[]>(), It.IsAny<PublicKey>()) == TestData.EncryptedData));
+            serviceLocator.RegisterType<IKeyChain, KeyChain>();
             serviceLocator.RegisterType<IMTProtoConnection, MTProtoConnection>(RegistrationType.Transient);
-            
+
+            var keyChain = serviceLocator.ResolveType<IKeyChain>();
+            keyChain.AddKeys(TestData.TestPublicKeys);
+
             var connection = serviceLocator.ResolveType<IMTProtoConnection>();
             connection.DefaultRpcTimeout = TimeSpan.FromSeconds(5);
 

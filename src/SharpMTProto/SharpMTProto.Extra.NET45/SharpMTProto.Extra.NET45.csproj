@@ -44,6 +44,10 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\SharpTL\BigMath\src\BigMath\BigMath.PCL\BigMath.PCL.csproj">
+      <Project>{e57078c6-c6a2-4a24-8983-840ace910680}</Project>
+      <Name>BigMath.PCL</Name>
+    </ProjectReference>
     <ProjectReference Include="..\SharpMTProto.PCL\SharpMTProto.PCL.csproj">
       <Project>{01cf01f4-7c2a-4a92-af21-ee35a90b36f8}</Project>
       <Name>SharpMTProto.PCL</Name>

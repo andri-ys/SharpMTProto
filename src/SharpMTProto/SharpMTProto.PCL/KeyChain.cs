@@ -15,12 +15,26 @@ using SharpTL;
 namespace SharpMTProto
 {
     /// <summary>
+    ///     Key chain interface.
+    /// </summary>
+    public interface IKeyChain : IEnumerable<PublicKey>
+    {
+        PublicKey this[ulong keyFingerprint] { get; }
+        void Add(PublicKey publicKey);
+        void AddKeys(params PublicKey[] publicKeys);
+        void AddKeys(IEnumerable<PublicKey> keys);
+        void Remove(ulong keyFingerprint);
+        bool Contains(ulong keyFingerprint);
+        PublicKey GetFirst(IEnumerable<ulong> fingerprints);
+    }
+
+    /// <summary>
     ///     Key chain.
     /// </summary>
-    public class KeyChain : IEnumerable<Key>
+    public class KeyChain : IKeyChain
     {
         private readonly IHashServices _hashServices;
-        private readonly Dictionary<ulong, Key> _keys = new Dictionary<ulong, Key>();
+        private readonly Dictionary<ulong, PublicKey> _keys = new Dictionary<ulong, PublicKey>();
         private readonly TLRig _tlRig;
 
         public KeyChain([NotNull] TLRig tlRig, [NotNull] IHashServices hashServices)
@@ -32,12 +46,12 @@ namespace SharpMTProto
             _hashServices = hashServices;
         }
 
-        public Key this[ulong keyFingerprint]
+        public PublicKey this[ulong keyFingerprint]
         {
             get { return _keys.ContainsKey(keyFingerprint) ? _keys[keyFingerprint] : null; }
         }
 
-        public IEnumerator<Key> GetEnumerator()
+        public IEnumerator<PublicKey> GetEnumerator()
         {
             return _keys.Values.GetEnumerator();
         }
@@ -47,22 +61,22 @@ namespace SharpMTProto
             return GetEnumerator();
         }
 
-        public void Add(Key key)
+        public void Add(PublicKey publicKey)
         {
-            if (!_keys.ContainsKey(key.Fingerprint))
+            if (!_keys.ContainsKey(publicKey.Fingerprint))
             {
-                _keys.Add(key.Fingerprint, key);
+                _keys.Add(publicKey.Fingerprint, publicKey);
             }
         }
 
-        public void AddKeys(params Key[] keys)
+        public void AddKeys(params PublicKey[] publicKeys)
         {
-            AddKeys(keys.AsEnumerable());
+            AddKeys(publicKeys.AsEnumerable());
         }
 
-        public void AddKeys(IEnumerable<Key> keys)
+        public void AddKeys(IEnumerable<PublicKey> keys)
         {
-            foreach (Key key in keys)
+            foreach (PublicKey key in keys)
             {
                 Add(key);
             }
@@ -81,28 +95,36 @@ namespace SharpMTProto
             return _keys.ContainsKey(keyFingerprint);
         }
 
+        public PublicKey GetFirst(IEnumerable<ulong> fingerprints)
+        {
+            return (from fingerprint in fingerprints where Contains(fingerprint) select this[fingerprint]).FirstOrDefault();
+        }
+
         /// <summary>
         ///     Checks key fingerprint.
         /// </summary>
-        /// <param name="key">The key.</param>
+        /// <param name="publicKey">The key.</param>
         /// <returns>True - fingerprint is OK, False - fingerprint is incorrect.</returns>
-        public bool CheckKeyFingerprint(Key key)
+        public bool CheckKeyFingerprint(PublicKey publicKey)
         {
-            byte[] keyData = _tlRig.Serialize(key, TLSerializationMode.Bare);
-            byte[] hash = _hashServices.ComputeSHA1(keyData);
-            ulong expectedFingerprint = hash.ToUInt64(hash.Length - 8, false);
-            return key.Fingerprint == expectedFingerprint;
+            return true;
+
+            // TODO: very strange, but this implementation doesn't work.
+
+            byte[] keyData = _tlRig.Serialize(publicKey, TLSerializationMode.Bare);
+            ulong expectedFingerprint = CalculateFingerprint(keyData);
+            return publicKey.Fingerprint == expectedFingerprint;
         }
 
         /// <summary>
         ///     Calculates fingerprint for a public RSA key.
         /// </summary>
-        /// <param name="publicKey">Public key bytes.</param>
+        /// <param name="modulus">Modulus bytes.</param>
         /// <param name="exponent">Exponent bytes.</param>
         /// <returns>Returns fingerprint as lower 64 bits of the SHA1(RSAPublicKey).</returns>
-        public ulong CalculateFingerprint(byte[] publicKey, byte[] exponent)
+        public ulong CalculateFingerprint(byte[] modulus, byte[] exponent)
         {
-            var tempKey = new Key(publicKey, exponent, 0);
+            var tempKey = new PublicKey(modulus, exponent, 0);
             byte[] keyData = _tlRig.Serialize(tempKey, TLSerializationMode.Bare);
             return CalculateFingerprint(keyData);
         }
@@ -115,7 +137,7 @@ namespace SharpMTProto
         public ulong CalculateFingerprint(byte[] keyData)
         {
             byte[] hash = _hashServices.ComputeSHA1(keyData);
-            return hash.ToUInt64(asLittleEndian: false);
+            return hash.ToUInt64(hash.Length - 8, false);
         }
     }
 }

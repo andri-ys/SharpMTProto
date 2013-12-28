@@ -4,6 +4,7 @@
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
+using System.IO;
 using System.Security.Cryptography;
 
 namespace SharpMTProto.Extra
@@ -20,6 +21,14 @@ namespace SharpMTProto.Extra
             using (var sha = new SHA1CryptoServiceProvider())
             {
                 return sha.ComputeHash(data, offset, count);
+            }
+        }
+
+        public byte[] ComputeSHA1(Stream stream)
+        {
+            using (var sha = new SHA1CryptoServiceProvider())
+            {
+                return sha.ComputeHash(stream);
             }
         }
     }

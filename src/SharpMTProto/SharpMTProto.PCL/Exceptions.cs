@@ -26,17 +26,17 @@ namespace SharpMTProto
         }
     }
 
-    public class WrongResponseException : MTProtoException
+    public class InvalidResponseException : MTProtoException
     {
-        public WrongResponseException()
+        public InvalidResponseException()
         {
         }
 
-        public WrongResponseException(string message) : base(message)
+        public InvalidResponseException(string message) : base(message)
         {
         }
 
-        public WrongResponseException(string message, Exception innerException) : base(message, innerException)
+        public InvalidResponseException(string message, Exception innerException) : base(message, innerException)
         {
         }
     }

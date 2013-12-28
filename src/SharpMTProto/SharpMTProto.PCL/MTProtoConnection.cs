@@ -327,7 +327,7 @@ namespace SharpMTProto
 
         public async Task<ISetClientDHParamsAnswer> SetClientDHParamsAsync(SetClientDHParamsArgs args)
         {
-            throw new NotImplementedException();
+            return await SendUnencryptedMessageAndWaitForResponse<ISetClientDHParamsAnswer>(args, DefaultRpcTimeout);
         }
 
         public async Task<IRpcDropAnswer> RpcDropAnswerAsync(RpcDropAnswerArgs args)

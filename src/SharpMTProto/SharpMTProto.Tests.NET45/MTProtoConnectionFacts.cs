@@ -47,6 +47,7 @@ namespace SharpMTProto.Tests
 
             serviceLocator.RegisterInstance(mockConnectionFactory.Object);
             serviceLocator.RegisterInstance(TLRig.Default);
+            serviceLocator.RegisterInstance<IMessageIdGenerator>(new TestMessageIdsGenerator());
             serviceLocator.RegisterType<IMTProtoConnection, MTProtoConnection>(RegistrationType.Transient);
 
             using (var connection = serviceLocator.ResolveType<IMTProtoConnection>())
@@ -93,6 +94,7 @@ namespace SharpMTProto.Tests
 
             serviceLocator.RegisterInstance(mockConnectionFactory.Object);
             serviceLocator.RegisterInstance(TLRig.Default);
+            serviceLocator.RegisterInstance<IMessageIdGenerator>(new TestMessageIdsGenerator());
             serviceLocator.RegisterType<IMTProtoConnection, MTProtoConnection>(RegistrationType.Transient);
 
             using (var connection = serviceLocator.ResolveType<IMTProtoConnection>())
@@ -124,6 +126,7 @@ namespace SharpMTProto.Tests
 
             serviceLocator.RegisterInstance(mockConnectionFactory.Object);
             serviceLocator.RegisterInstance(TLRig.Default);
+            serviceLocator.RegisterInstance<IMessageIdGenerator>(new TestMessageIdsGenerator());
             serviceLocator.RegisterType<IMTProtoConnection, MTProtoConnection>(RegistrationType.Transient);
 
             var testAction = new Func<Task>(async () =>

@@ -118,6 +118,7 @@ namespace SharpMTProto
 
                 #region Checking instructions
                 /****************************************************************************************************************************************
+                 * 
                  * Client is expected to check whether p = dh_prime is a safe 2048-bit prime (meaning that both p and (p-1)/2 are prime,
                  * and that 2^2047 < p < 2^2048), and that g generates a cyclic subgroup of prime order (p-1)/2, i.e. is a quadratic residue mod p.
                  * Since g is always equal to 2, 3, 4, 5, 6 or 7, this is easily done using quadratic reciprocity law,
@@ -139,6 +140,11 @@ namespace SharpMTProto
                  * F69458705AC68CD4FE6B6B13ABDC9746512969328454F18FAF8C595F642477FE96BB2A941D5BCD1D4AC8CC49880708FA9B378E3C4F3A9060BEE67CF9A4A4A695811051
                  * 907E162753B56B0F6B410DBA74D8A84B2A14B3144E0EF1284754FD17ED950D5965B4B9DD46582DB1178D169C6BC465B0D6FF9CA3928FEF5B9AE4E418FC15E83EBEA0F8
                  * 7FA9FF5EED70050DED2849F47BF959D956850CE929851F0D8115F635B105EE2E4E15D04B2454BF6F4FADF034B10403119CD8E3B92FCC5B
+                 * 
+                 * IMPORTANT: Apart from the conditions on the Diffie-Hellman prime dh_prime and generator g,
+                 * both sides are to check that g, g_a and g_b are greater than 1 and less than dh_prime - 1.
+                 * We recommend checking that g_a and g_b are between 2^{2048-64} and dh_prime - 2^{2048-64} as well.
+                 * 
                  ****************************************************************************************************************************************/
                 #endregion
 

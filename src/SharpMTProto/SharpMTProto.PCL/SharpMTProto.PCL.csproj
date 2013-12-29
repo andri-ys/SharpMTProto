@@ -89,6 +89,7 @@
     <Compile Include="IMessage.cs" />
     <Compile Include="IConnectorFactory.cs" />
     <Compile Include="IMTProtoConnection.cs" />
+    <Compile Include="MTProtoConnectionFactory.cs" />
     <Compile Include="PublicKey.cs" />
     <Compile Include="KeyChain.cs" />
     <Compile Include="MessageIdGenerator.cs" />

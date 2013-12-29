@@ -28,25 +28,25 @@ namespace SharpMTProto
         private const int HashLength = 20;
         private const int AuthRetryCount = 5;
         private static readonly ILog Log = LogManager.GetCurrentClassLogger();
+        private readonly IMTProtoConnectionFactory _connectionFactory;
         private readonly IEncryptionServices _encryptionServices;
         private readonly IHashServices _hashServices;
         private readonly IKeyChain _keyChain;
         private readonly INonceGenerator _nonceGenerator;
         private readonly TLRig _tlRig;
-        private IMTProtoConnection _connection;
         private bool _isDisposed;
 
-        public MTProtoClient([NotNull] IMTProtoConnection connection, [NotNull] TLRig tlRig, [NotNull] INonceGenerator nonceGenerator,
+        public MTProtoClient([NotNull] IMTProtoConnectionFactory connectionFactory, [NotNull] TLRig tlRig, [NotNull] INonceGenerator nonceGenerator,
             [NotNull] IHashServices hashServices, [NotNull] IEncryptionServices encryptionServices, [NotNull] IKeyChain keyChain)
         {
-            Argument.IsNotNull(() => connection);
+            Argument.IsNotNull(() => connectionFactory);
             Argument.IsNotNull(() => tlRig);
             Argument.IsNotNull(() => nonceGenerator);
             Argument.IsNotNull(() => hashServices);
             Argument.IsNotNull(() => encryptionServices);
             Argument.IsNotNull(() => keyChain);
 
-            _connection = connection;
+            _connectionFactory = connectionFactory;
             _tlRig = tlRig;
             _nonceGenerator = nonceGenerator;
             _hashServices = hashServices;
@@ -58,27 +58,37 @@ namespace SharpMTProto
         {
             ThrowIfDisposed();
 
-            byte[] authKey = null;
-            Int128 nonce = _nonceGenerator.GetNonce(16).ToInt128();
+            IMTProtoConnection connection = _connectionFactory.Create();
 
-            Log.Info(string.Format("Creating auth key with nonce 0x{0:X}.", nonce));
+            byte[] authKey = null;
+
             try
             {
-                await TryConnectIfDisconnected();
+                Int128 nonce = _nonceGenerator.GetNonce(16).ToInt128();
 
+                Log.Info(string.Format("Creating auth key with nonce [0x{0:X16}]...", nonce));
+
+                // Connecting.
+                Log.Info("Connecting...");
+                MTProtoConnectResult result = await connection.Connect();
+                if (result != MTProtoConnectResult.Success)
+                {
+                    throw new CouldNotConnectException("Connection trial was unsuccessful.");
+                }
 
                 // Requesting PQ.
                 Log.Info("Requesting PQ (with nonce: 0x{0:X16})...", nonce);
-                var resPQ = await _connection.ReqPqAsync(new ReqPqArgs {Nonce = nonce}) as ResPQ;
+                var resPQ = await connection.ReqPqAsync(new ReqPqArgs {Nonce = nonce}) as ResPQ;
                 if (resPQ == null)
                 {
                     throw new InvalidResponseException();
                 }
                 CheckNonce(nonce, resPQ.Nonce);
+
                 Log.Info(string.Format("Response PQ: [0x{0}], server nonce: [0x{1:X16}], {2}.", resPQ.Pq.ToHexaString(), resPQ.ServerNonce,
                     resPQ.ServerPublicKeyFingerprints.Aggregate("public keys fingerprints:", (text, fingerprint) => text + " [0x" + fingerprint.ToString("X8") + "]")));
-                Int128 serverNonce = resPQ.ServerNonce;
 
+                Int128 serverNonce = resPQ.ServerNonce;
 
                 // Requesting DH params.
                 PQInnerData pqInnerData;
@@ -86,7 +96,8 @@ namespace SharpMTProto
                 Int256 newNonce = pqInnerData.NewNonce;
 
                 Log.Info(string.Format("Requesting DH params with new nonce: [0x{0:X32}]...", newNonce));
-                IServerDHParams serverDHParams = await _connection.ReqDHParamsAsync(reqDhParamsArgs);
+
+                IServerDHParams serverDHParams = await connection.ReqDHParamsAsync(reqDhParamsArgs);
                 if (serverDHParams == null)
                 {
                     throw new InvalidResponseException();
@@ -107,11 +118,14 @@ namespace SharpMTProto
                 }
                 CheckNonce(nonce, dhParamsOk.Nonce);
                 CheckNonce(serverNonce, dhParamsOk.ServerNonce);
-                Log.Info(string.Format("Received server DH params (encrypted answer: {0}).", dhParamsOk.EncryptedAnswer.ToHexaString(spaceEveryByte: true)));
+
+                Log.Info("Received server DH params. Computing temp AES key and IV...");
 
                 byte[] tmpAesKey;
                 byte[] tmpAesIV;
                 ComputeTmpAesKeyAndIV(newNonce, serverNonce, out tmpAesKey, out tmpAesIV);
+
+                Log.Info("Decrypting server DH inner data...");
 
                 ServerDHInnerData serverDHInnerData = DecryptServerDHInnerData(dhParamsOk.EncryptedAnswer, tmpAesKey, tmpAesIV);
                 // TODO: Implement checking.
@@ -150,8 +164,11 @@ namespace SharpMTProto
 
                 byte[] authKeyAuxHash = null;
 
+                // Setting of client DH params.
                 for (int retry = 0; retry < AuthRetryCount; retry++)
                 {
+                    Log.Info(string.Format("Trial #{0} to set client DH params...", retry + 1));
+
                     byte[] b = _nonceGenerator.GetNonce(256);
                     byte[] g = serverDHInnerData.G.ToBytes(false);
                     byte[] ga = serverDHInnerData.GA;
@@ -180,7 +197,7 @@ namespace SharpMTProto
                     byte[] encryptedData = _encryptionServices.Aes256IgeEncrypt(dataWithHash, tmpAesKey, tmpAesIV);
                     var setClientDHParamsArgs = new SetClientDHParamsArgs {Nonce = nonce, ServerNonce = serverNonce, EncryptedData = encryptedData};
 
-                    ISetClientDHParamsAnswer setClientDHParamsAnswer = await _connection.SetClientDHParamsAsync(setClientDHParamsArgs);
+                    ISetClientDHParamsAnswer setClientDHParamsAnswer = await connection.SetClientDHParamsAsync(setClientDHParamsArgs);
                     var dhGenOk = setClientDHParamsAnswer as DhGenOk;
                     if (dhGenOk != null)
                     {
@@ -222,6 +239,13 @@ namespace SharpMTProto
             catch (Exception e)
             {
                 Log.Error(e, "Could not create auth key.");
+            }
+            finally
+            {
+                if (connection != null)
+                {
+                    connection.Dispose();
+                }
             }
             return authKey;
         }
@@ -391,18 +415,6 @@ namespace SharpMTProto
             return reqDhParamsArgs;
         }
 
-        private async Task TryConnectIfDisconnected()
-        {
-            if (!_connection.IsConnected)
-            {
-                MTProtoConnectResult result = await _connection.Connect();
-                if (result != MTProtoConnectResult.Success)
-                {
-                    throw new CouldNotConnectException("Connection trial was unsuccessful.");
-                }
-            }
-        }
-
         #region Disposable
         public void Dispose()
         {
@@ -427,11 +439,6 @@ namespace SharpMTProto
 
             if (isDisposing)
             {
-                if (_connection != null)
-                {
-                    _connection.Dispose();
-                    _connection = null;
-                }
             }
         }
         #endregion

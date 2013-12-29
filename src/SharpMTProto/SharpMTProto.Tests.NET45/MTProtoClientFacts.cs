@@ -32,8 +32,8 @@ namespace SharpMTProto.Tests
         public async Task Should_create_auth_key()
         {
             var serviceLocator = new ServiceLocator();
-            var typeFactory = new TypeFactory(serviceLocator.ResolveType<IDependencyResolver>());
-
+            var typeFactory = serviceLocator.ResolveType<ITypeFactory>();
+            
             var inConnector = new Subject<byte[]>();
             var mockConnector = new Mock<IConnector>();
             mockConnector.Setup(connector => connector.Subscribe(It.IsAny<IObserver<byte[]>>())).Callback<IObserver<byte[]>>(observer => inConnector.Subscribe(observer));
@@ -59,12 +59,14 @@ namespace SharpMTProto.Tests
             serviceLocator.RegisterInstance(mockEncryptionServices.Object);
             serviceLocator.RegisterType<IKeyChain, KeyChain>();
             serviceLocator.RegisterType<IMTProtoConnection, MTProtoConnection>(RegistrationType.Transient);
+            serviceLocator.RegisterType<IMTProtoConnectionFactory, MTProtoConnectionFactory>();
 
             var keyChain = serviceLocator.ResolveType<IKeyChain>();
             keyChain.AddKeys(TestData.TestPublicKeys);
 
-            var connection = serviceLocator.ResolveType<IMTProtoConnection>();
-            connection.DefaultRpcTimeout = TimeSpan.FromSeconds(5);
+            var connectionFactory = serviceLocator.ResolveType<IMTProtoConnectionFactory>();
+            connectionFactory.DefaultRpcTimeout = TimeSpan.FromSeconds(5);
+            connectionFactory.DefaultConnectTimeout = TimeSpan.FromSeconds(5);
 
             var client = typeFactory.CreateInstance<MTProtoClient>();
 

@@ -87,6 +87,8 @@
     <Compile Include="IEncryptionServices.cs" />
     <Compile Include="IHashServices.cs" />
     <Compile Include="IMessage.cs" />
+    <Compile Include="MTProtoClient.AuthKey.cs" />
+    <Compile Include="MTProtoClient.Disposable.cs" />
     <Compile Include="TransportFactory.cs" />
     <Compile Include="IMTProtoConnection.cs" />
     <Compile Include="MTProtoConnectionFactory.cs" />

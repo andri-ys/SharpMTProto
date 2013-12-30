@@ -29,14 +29,14 @@ namespace SharpMTProto
     {
         private static readonly ILog Log = LogManager.GetCurrentClassLogger();
 
-        private readonly ITransportFactory _transportFactory;
         private readonly AsyncLock _lock = new AsyncLock();
         private readonly IMessageIdGenerator _messageIdGenerator;
         private readonly TLRig _tlRig;
+        private readonly ITransport _transport;
+        private readonly ITransportFactory _transportFactory;
         private CancellationToken _connectionCancellationToken;
 
         private CancellationTokenSource _connectionCts;
-        private ITransport _transport;
 
         private bool _isDisposed;
 
@@ -58,9 +58,22 @@ namespace SharpMTProto
             _transportFactory = transportFactory;
             _tlRig = tlRig;
             _messageIdGenerator = messageIdGenerator;
-            
+
             DefaultRpcTimeout = TimeSpan.FromSeconds(5);
             DefaultConnectTimeout = TimeSpan.FromSeconds(5);
+
+            // Init transport.
+            _transport = _transportFactory.CreateTransport();
+
+            // History of messages in/out.
+            _inMessages.ObserveOn(DefaultScheduler.Instance).Subscribe(_inMessagesHistory);
+            _outMessages.ObserveOn(DefaultScheduler.Instance).Subscribe(_outMessagesHistory);
+
+            // Connector in/out.
+            _transport.ObserveOn(DefaultScheduler.Instance).Do(bytes => LogMessageInOut(bytes, "IN")).Subscribe(ProcessIncomingMessageBytes);
+            _outMessages.ObserveOn(DefaultScheduler.Instance)
+                .Do(message => LogMessageInOut(message.MessageBytes, "OUT"))
+                .Subscribe(message => _transport.OnNext(message.MessageBytes));
         }
 
         public TimeSpan DefaultRpcTimeout { get; set; }
@@ -124,11 +137,45 @@ namespace SharpMTProto
         /// </summary>
         public async Task<MTProtoConnectResult> Connect()
         {
+            return await Connect(CancellationToken.None);
+        }
+
+        public async Task Disconnect()
+        {
+            // ReSharper disable MethodSupportsCancellation
+            await Task.Run(async () =>
+            {
+                using (await _lock.LockAsync())
+                {
+                    if (_state == MTProtoConnectionState.Disconnected)
+                    {
+                        return;
+                    }
+                    _state = MTProtoConnectionState.Disconnected;
+
+                    if (_connectionCts != null)
+                    {
+                        _connectionCts.Cancel();
+                        _connectionCts.Dispose();
+                        _connectionCts = null;
+                    }
+
+                    await _transport.Disconnect();
+                }
+            }).ConfigureAwait(false);
+            // ReSharper restore MethodSupportsCancellation
+        }
+
+        /// <summary>
+        ///     Start sender and receiver tasks.
+        /// </summary>
+        public async Task<MTProtoConnectResult> Connect(CancellationToken cancellationToken)
+        {
             var result = MTProtoConnectResult.Other;
 
             await Task.Run(async () =>
             {
-                using (await _lock.LockAsync(_connectionCancellationToken))
+                using (await _lock.LockAsync(cancellationToken))
                 {
                     if (_state == MTProtoConnectionState.Connected)
                     {
@@ -144,22 +191,8 @@ namespace SharpMTProto
                         _connectionCts = new CancellationTokenSource();
                         _connectionCancellationToken = _connectionCts.Token;
 
-                        _transport = _transportFactory.CreateTransport();
-
-                        // History of messages in/out.
-                        _inMessages.ObserveOn(DefaultScheduler.Instance).Subscribe(_inMessagesHistory, _connectionCancellationToken);
-                        _outMessages.ObserveOn(DefaultScheduler.Instance).Subscribe(_outMessagesHistory, _connectionCancellationToken);
-
-                        // Connector in/out.
-                        _transport.ObserveOn(DefaultScheduler.Instance)
-                            .Do(bytes => LogMessageInOut(bytes, "IN"))
-                            .Subscribe(ProcessIncomingMessageBytes, _connectionCancellationToken);
-                        _outMessages.ObserveOn(DefaultScheduler.Instance)
-                            .Do(message => LogMessageInOut(message.MessageBytes, "OUT"))
-                            .Subscribe(message => _transport.OnNext(message.MessageBytes), _connectionCancellationToken);
-
                         // TODO: add retry logic.
-                        await _transport.Connect(DefaultConnectTimeout, _connectionCancellationToken);
+                        await _transport.Connect(DefaultConnectTimeout, cancellationToken);
 
                         Log.Debug("Connected.");
                         result = MTProtoConnectResult.Success;
@@ -190,40 +223,9 @@ namespace SharpMTProto
                         }
                     }
                 }
-            }, _connectionCancellationToken).ConfigureAwait(false);
+            }, cancellationToken).ConfigureAwait(false);
 
             return result;
-        }
-
-        public async Task Disconnect()
-        {
-            if (_connectionCts != null)
-            {
-                _connectionCts.Cancel();
-                _connectionCts.Dispose();
-                _connectionCts = null;
-            }
-
-            // ReSharper disable MethodSupportsCancellation
-            await Task.Run(async () =>
-            {
-                using (await _lock.LockAsync())
-                {
-                    if (_state == MTProtoConnectionState.Disconnected)
-                    {
-                        return;
-                    }
-
-                    if (_transport != null)
-                    {
-                        _transport.Dispose();
-                    }
-                    _transport = null;
-
-                    _state = MTProtoConnectionState.Disconnected;
-                }
-            }).ConfigureAwait(false);
-            // ReSharper restore MethodSupportsCancellation
         }
 
         private static void LogMessageInOut(byte[] messageBytes, string inOrOut)

@@ -5,6 +5,7 @@
 // --------------------------------------------------------------------------------------------------------------------
 
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using MTProtoSchema;
 
@@ -32,7 +33,16 @@ namespace SharpMTProto
         Task<TResponse> SendUnencryptedMessageAndWaitForResponse<TResponse>(object requestMessageData, TimeSpan timeout) where TResponse : class;
 
         Task Disconnect();
+
+        /// <summary>
+        ///     Connect.
+        /// </summary>
         Task<MTProtoConnectResult> Connect();
+
+        /// <summary>
+        ///     Connect.
+        /// </summary>
+        Task<MTProtoConnectResult> Connect(CancellationToken cancellationToken);
     }
 
     public enum MTProtoConnectionState

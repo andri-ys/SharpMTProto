@@ -9,6 +9,7 @@ using System.Linq;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Reactive.Threading.Tasks;
+using System.Threading;
 using System.Threading.Tasks;
 using BigMath.Utils;
 using Catel.IoC;
@@ -138,6 +139,30 @@ namespace SharpMTProto.Tests
                 }
             });
             testAction.ShouldThrow<TimeoutException>();
+        }
+
+        [Test]
+        public async Task Should_timeout_on_connect()
+        {
+            IServiceLocator serviceLocator = new ServiceLocator();
+
+            var mockTransport = new Mock<ITransport>();
+            mockTransport.Setup(transport => transport.Connect(It.IsAny<CancellationToken>())).Returns(() => Task.Delay(1000));
+
+            var mockTransportFactory = new Mock<ITransportFactory>();
+            mockTransportFactory.Setup(manager => manager.CreateTransport()).Returns(() => mockTransport.Object).Verifiable();
+
+            serviceLocator.RegisterInstance(mockTransportFactory.Object);
+            serviceLocator.RegisterInstance(TLRig.Default);
+            serviceLocator.RegisterInstance<IMessageIdGenerator>(new TestMessageIdsGenerator());
+            serviceLocator.RegisterType<IMTProtoConnection, MTProtoConnection>(RegistrationType.Transient);
+
+            using (var connection = serviceLocator.ResolveType<IMTProtoConnection>())
+            {
+                connection.DefaultConnectTimeout = TimeSpan.FromMilliseconds(100);
+                var result = await connection.Connect();
+                result.ShouldBeEquivalentTo(MTProtoConnectResult.Timeout);
+            }
         }
     }
 }

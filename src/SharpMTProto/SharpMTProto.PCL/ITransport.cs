@@ -21,8 +21,8 @@ namespace SharpMTProto
     {
         bool IsConnected { get; }
         TransportState State { get; }
-        Task Connect(TimeSpan timeout);
-        Task Connect(TimeSpan timeout, CancellationToken token);
+        Task Connect();
+        Task Connect(CancellationToken token);
 
         Task Disconnect();
         Task Disconnect(CancellationToken token);

@@ -7,6 +7,7 @@
 using System;
 using System.Linq;
 using System.Reactive.Subjects;
+using System.Threading;
 using System.Threading.Tasks;
 using BigMath.Utils;
 using Catel.IoC;
@@ -31,6 +32,9 @@ namespace SharpMTProto.Tests
         [Test]
         public async Task Should_create_auth_key()
         {
+            var defaultRpcTimeout = TimeSpan.FromSeconds(1);
+            var defaultConnectTimeout = TimeSpan.FromSeconds(1);
+
             var serviceLocator = new ServiceLocator();
             var typeFactory = serviceLocator.ResolveType<ITypeFactory>();
             
@@ -40,7 +44,7 @@ namespace SharpMTProto.Tests
             mockTransport.Setup(connector => connector.OnNext(TestData.ReqPQ)).Callback(() => inTransport.OnNext(TestData.ResPQ));
             mockTransport.Setup(connector => connector.OnNext(TestData.ReqDHParams)).Callback(() => inTransport.OnNext(TestData.ServerDHParams));
             mockTransport.Setup(connector => connector.OnNext(TestData.SetClientDHParams)).Callback(() => inTransport.OnNext(TestData.DhGenOk));
-
+            
             var mockEncryptionServices = new Mock<IEncryptionServices>();
             mockEncryptionServices.Setup(services => services.RSAEncrypt(It.IsAny<byte[]>(), It.IsAny<PublicKey>())).Returns(TestData.EncryptedData);
             mockEncryptionServices.Setup(services => services.Aes256IgeDecrypt(TestData.ServerDHParamsOkEncryptedAnswer, TestData.TmpAesKey, TestData.TmpAesIV))
@@ -66,8 +70,8 @@ namespace SharpMTProto.Tests
             keyChain.AddKeys(TestData.TestPublicKeys);
 
             var connectionFactory = serviceLocator.ResolveType<IMTProtoConnectionFactory>();
-            connectionFactory.DefaultRpcTimeout = TimeSpan.FromSeconds(5);
-            connectionFactory.DefaultConnectTimeout = TimeSpan.FromSeconds(5);
+            connectionFactory.DefaultRpcTimeout = defaultRpcTimeout;
+            connectionFactory.DefaultConnectTimeout = defaultConnectTimeout;
 
             var client = typeFactory.CreateInstance<MTProtoClient>();
 

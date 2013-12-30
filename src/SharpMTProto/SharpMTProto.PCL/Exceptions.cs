@@ -62,11 +62,11 @@ namespace SharpMTProto
         {
         }
 
-        public CouldNotConnectException(string message) : base(message)
+        public CouldNotConnectException(string message, MTProtoConnectResult result) : base(message)
         {
         }
 
-        public CouldNotConnectException(string message, Exception innerException) : base(message, innerException)
+        public CouldNotConnectException(string message, MTProtoConnectResult result, Exception innerException) : base(message, innerException)
         {
         }
     }

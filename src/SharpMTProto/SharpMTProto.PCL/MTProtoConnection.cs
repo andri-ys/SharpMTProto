@@ -140,34 +140,8 @@ namespace SharpMTProto
             return await Connect(CancellationToken.None);
         }
 
-        public async Task Disconnect()
-        {
-            // ReSharper disable MethodSupportsCancellation
-            await Task.Run(async () =>
-            {
-                using (await _lock.LockAsync())
-                {
-                    if (_state == MTProtoConnectionState.Disconnected)
-                    {
-                        return;
-                    }
-                    _state = MTProtoConnectionState.Disconnected;
-
-                    if (_connectionCts != null)
-                    {
-                        _connectionCts.Cancel();
-                        _connectionCts.Dispose();
-                        _connectionCts = null;
-                    }
-
-                    await _transport.Disconnect();
-                }
-            }).ConfigureAwait(false);
-            // ReSharper restore MethodSupportsCancellation
-        }
-
         /// <summary>
-        ///     Start sender and receiver tasks.
+        ///     Connect.
         /// </summary>
         public async Task<MTProtoConnectResult> Connect(CancellationToken cancellationToken)
         {
@@ -188,19 +162,18 @@ namespace SharpMTProto
                         _state = MTProtoConnectionState.Connecting;
                         Log.Debug("Connecting...");
 
+                        await _transport.Connect(cancellationToken).ToObservable().Timeout(DefaultConnectTimeout);
+
                         _connectionCts = new CancellationTokenSource();
                         _connectionCancellationToken = _connectionCts.Token;
-
-                        // TODO: add retry logic.
-                        await _transport.Connect(DefaultConnectTimeout, cancellationToken);
 
                         Log.Debug("Connected.");
                         result = MTProtoConnectResult.Success;
                     }
-                    catch (TimeoutException e)
+                    catch (TimeoutException)
                     {
                         result = MTProtoConnectResult.Timeout;
-                        Log.Debug(e, "Failed to connect due to timeout.");
+                        Log.Debug(string.Format("Failed to connect due to timeout ({0}s).", DefaultConnectTimeout.TotalSeconds));
                     }
                     catch (Exception e)
                     {
@@ -226,6 +199,32 @@ namespace SharpMTProto
             }, cancellationToken).ConfigureAwait(false);
 
             return result;
+        }
+
+        public async Task Disconnect()
+        {
+            // ReSharper disable MethodSupportsCancellation
+            await Task.Run(async () =>
+            {
+                using (await _lock.LockAsync())
+                {
+                    if (_state == MTProtoConnectionState.Disconnected)
+                    {
+                        return;
+                    }
+                    _state = MTProtoConnectionState.Disconnected;
+
+                    if (_connectionCts != null)
+                    {
+                        _connectionCts.Cancel();
+                        _connectionCts.Dispose();
+                        _connectionCts = null;
+                    }
+
+                    await _transport.Disconnect();
+                }
+            }).ConfigureAwait(false);
+            // ReSharper restore MethodSupportsCancellation
         }
 
         private static void LogMessageInOut(byte[] messageBytes, string inOrOut)

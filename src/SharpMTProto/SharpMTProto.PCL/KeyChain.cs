@@ -107,12 +107,8 @@ namespace SharpMTProto
         /// <returns>True - fingerprint is OK, False - fingerprint is incorrect.</returns>
         public bool CheckKeyFingerprint(PublicKey publicKey)
         {
-            return true;
-
-            // TODO: very strange, but this implementation doesn't work.
-
             byte[] keyData = _tlRig.Serialize(publicKey, TLSerializationMode.Bare);
-            ulong expectedFingerprint = CalculateFingerprint(keyData);
+            ulong expectedFingerprint = ComputeFingerprint(keyData);
             return publicKey.Fingerprint == expectedFingerprint;
         }
 
@@ -122,11 +118,11 @@ namespace SharpMTProto
         /// <param name="modulus">Modulus bytes.</param>
         /// <param name="exponent">Exponent bytes.</param>
         /// <returns>Returns fingerprint as lower 64 bits of the SHA1(RSAPublicKey).</returns>
-        public ulong CalculateFingerprint(byte[] modulus, byte[] exponent)
+        public ulong ComputeFingerprint(byte[] modulus, byte[] exponent)
         {
             var tempKey = new PublicKey(modulus, exponent, 0);
             byte[] keyData = _tlRig.Serialize(tempKey, TLSerializationMode.Bare);
-            return CalculateFingerprint(keyData);
+            return ComputeFingerprint(keyData);
         }
 
         /// <summary>
@@ -134,10 +130,10 @@ namespace SharpMTProto
         /// </summary>
         /// <param name="keyData">Bare serialized type of a constructor: "rsa_public_key n:string e:string = RSAPublicKey".</param>
         /// <returns>Returns fingerprint as lower 64 bits of the SHA1(RSAPublicKey).</returns>
-        public ulong CalculateFingerprint(byte[] keyData)
+        public ulong ComputeFingerprint(byte[] keyData)
         {
             byte[] hash = _hashServices.ComputeSHA1(keyData);
-            return hash.ToUInt64(hash.Length - 8, false);
+            return hash.ToUInt64(hash.Length - 8);
         }
     }
 }

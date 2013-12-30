@@ -53,7 +53,7 @@ namespace SharpMTProto
                 }
                 CheckNonce(nonce, resPQ.Nonce);
 
-                Log.Debug(string.Format("Response PQ: [0x{0}], server nonce: [0x{1:X16}], {2}.", resPQ.Pq.ToHexaString(), resPQ.ServerNonce,
+                Log.Debug(string.Format("Response PQ: [0x{0}], server nonce: [0x{1:X16}], {2}.", resPQ.Pq.ToHexString(), resPQ.ServerNonce,
                     resPQ.ServerPublicKeyFingerprints.Aggregate("public keys fingerprints:", (text, fingerprint) => text + " [0x" + fingerprint.ToString("X8") + "]")));
 
                 Int128 serverNonce = resPQ.ServerNonce;
@@ -153,8 +153,8 @@ namespace SharpMTProto
                         GB = dhOutParams.GB
                     };
 
-                    Log.Debug(string.Format("DH data: B:[0x{0}], G:[0x{1}], GB:[0x{2}], P:[0x{3}], S:[0x{4}].", b.ToHexaString(), g.ToHexaString(),
-                        dhOutParams.GB.ToHexaString(), p.ToHexaString(), authKey.ToHexaString()));
+                    Log.Debug(string.Format("DH data: B:[0x{0}], G:[0x{1}], GB:[0x{2}], P:[0x{3}], S:[0x{4}].", b.ToHexString(), g.ToHexString(),
+                        dhOutParams.GB.ToHexString(), p.ToHexString(), authKey.ToHexString()));
 
                     // byte[] authKeyHash = ComputeSHA1(authKey).Skip(HashLength - 8).Take(8).ToArray(); // Not used in client.
                     authKeyAuxHash = ComputeSHA1(authKey).Take(8).ToArray();
@@ -181,7 +181,7 @@ namespace SharpMTProto
                         Int128 newNonceHash1 = ComputeNewNonceHash(newNonce, 1, authKeyAuxHash);
                         CheckNonce(newNonceHash1, dhGenOk.NewNonceHash1);
 
-                        Log.Debug(string.Format("Negotiated auth key: [0x{0}].", authKey.ToHexaString()));
+                        Log.Debug(string.Format("Negotiated auth key: [0x{0}].", authKey.ToHexString()));
 
                         return authKey;
                     }

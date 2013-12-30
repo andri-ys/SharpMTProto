@@ -31,13 +31,25 @@ namespace SharpMTProto.Tests
         }
 
         [Test]
-        public void Should_check_key()
+        public void Should_compute_key_fingerprint()
         {
             var keyChain = new KeyChain(TLRig.Default, new HashServices());
 
             foreach (PublicKey testKey in TestData.TestPublicKeys)
             {
-                keyChain.CheckKeyFingerprint(testKey).Should().BeTrue("Because fingerprint must be set correctly: {0:X16}.", testKey.Fingerprint);
+                var actual = keyChain.ComputeFingerprint(testKey.Modulus, testKey.Exponent);
+                actual.Should().Be(testKey.Fingerprint);
+            }
+        }
+
+        [Test]
+        public void Should_check_key_fingerprint()
+        {
+            var keyChain = new KeyChain(TLRig.Default, new HashServices());
+
+            foreach (PublicKey testKey in TestData.TestPublicKeys)
+            {
+                keyChain.CheckKeyFingerprint(testKey).Should().BeTrue();
             }
         }
     }

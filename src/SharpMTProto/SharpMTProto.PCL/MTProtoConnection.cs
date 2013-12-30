@@ -229,7 +229,7 @@ namespace SharpMTProto
 
         private static void LogMessageInOut(byte[] messageBytes, string inOrOut)
         {
-            Log.Debug(string.Format("{0} ({1} bytes): {2}", inOrOut, messageBytes.Length, messageBytes.ToHexaString(spaceEveryByte: true)));
+            Log.Debug(string.Format("{0} ({1} bytes): {2}", inOrOut, messageBytes.Length, messageBytes.ToHexString(spaceEveryByte: true)));
         }
 
         /// <summary>

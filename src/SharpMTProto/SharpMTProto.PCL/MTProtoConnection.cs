@@ -29,14 +29,14 @@ namespace SharpMTProto
     {
         private static readonly ILog Log = LogManager.GetCurrentClassLogger();
 
-        private readonly IConnectorFactory _connectorFactory;
+        private readonly ITransportFactory _transportFactory;
         private readonly AsyncLock _lock = new AsyncLock();
         private readonly IMessageIdGenerator _messageIdGenerator;
         private readonly TLRig _tlRig;
         private CancellationToken _connectionCancellationToken;
 
         private CancellationTokenSource _connectionCts;
-        private IConnector _connector;
+        private ITransport _transport;
 
         private bool _isDisposed;
 
@@ -49,13 +49,13 @@ namespace SharpMTProto
         private ReplaySubject<IMessage> _outMessagesHistory = new ReplaySubject<IMessage>(100);
         #endregion
 
-        public MTProtoConnection([NotNull] IConnectorFactory connectorFactory, [NotNull] TLRig tlRig, [NotNull] IMessageIdGenerator messageIdGenerator)
+        public MTProtoConnection([NotNull] ITransportFactory transportFactory, [NotNull] TLRig tlRig, [NotNull] IMessageIdGenerator messageIdGenerator)
         {
-            Argument.IsNotNull(() => connectorFactory);
+            Argument.IsNotNull(() => transportFactory);
             Argument.IsNotNull(() => tlRig);
             Argument.IsNotNull(() => messageIdGenerator);
 
-            _connectorFactory = connectorFactory;
+            _transportFactory = transportFactory;
             _tlRig = tlRig;
             _messageIdGenerator = messageIdGenerator;
             
@@ -144,22 +144,22 @@ namespace SharpMTProto
                         _connectionCts = new CancellationTokenSource();
                         _connectionCancellationToken = _connectionCts.Token;
 
-                        _connector = _connectorFactory.CreateConnector();
+                        _transport = _transportFactory.CreateTransport();
 
                         // History of messages in/out.
                         _inMessages.ObserveOn(DefaultScheduler.Instance).Subscribe(_inMessagesHistory, _connectionCancellationToken);
                         _outMessages.ObserveOn(DefaultScheduler.Instance).Subscribe(_outMessagesHistory, _connectionCancellationToken);
 
                         // Connector in/out.
-                        _connector.ObserveOn(DefaultScheduler.Instance)
+                        _transport.ObserveOn(DefaultScheduler.Instance)
                             .Do(bytes => LogMessageInOut(bytes, "IN"))
                             .Subscribe(ProcessIncomingMessageBytes, _connectionCancellationToken);
                         _outMessages.ObserveOn(DefaultScheduler.Instance)
                             .Do(message => LogMessageInOut(message.MessageBytes, "OUT"))
-                            .Subscribe(message => _connector.OnNext(message.MessageBytes), _connectionCancellationToken);
+                            .Subscribe(message => _transport.OnNext(message.MessageBytes), _connectionCancellationToken);
 
                         // TODO: add retry logic.
-                        await _connector.Connect(DefaultConnectTimeout, _connectionCancellationToken);
+                        await _transport.Connect(DefaultConnectTimeout, _connectionCancellationToken);
 
                         Log.Debug("Connected.");
                         result = MTProtoConnectResult.Success;
@@ -214,11 +214,11 @@ namespace SharpMTProto
                         return;
                     }
 
-                    if (_connector != null)
+                    if (_transport != null)
                     {
-                        _connector.Dispose();
+                        _transport.Dispose();
                     }
-                    _connector = null;
+                    _transport = null;
 
                     _state = MTProtoConnectionState.Disconnected;
                 }

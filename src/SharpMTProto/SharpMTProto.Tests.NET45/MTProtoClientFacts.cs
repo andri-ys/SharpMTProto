@@ -34,12 +34,12 @@ namespace SharpMTProto.Tests
             var serviceLocator = new ServiceLocator();
             var typeFactory = serviceLocator.ResolveType<ITypeFactory>();
             
-            var inConnector = new Subject<byte[]>();
-            var mockConnector = new Mock<IConnector>();
-            mockConnector.Setup(connector => connector.Subscribe(It.IsAny<IObserver<byte[]>>())).Callback<IObserver<byte[]>>(observer => inConnector.Subscribe(observer));
-            mockConnector.Setup(connector => connector.OnNext(TestData.ReqPQ)).Callback(() => inConnector.OnNext(TestData.ResPQ));
-            mockConnector.Setup(connector => connector.OnNext(TestData.ReqDHParams)).Callback(() => inConnector.OnNext(TestData.ServerDHParams));
-            mockConnector.Setup(connector => connector.OnNext(TestData.SetClientDHParams)).Callback(() => inConnector.OnNext(TestData.DhGenOk));
+            var inTransport = new Subject<byte[]>();
+            var mockTransport = new Mock<ITransport>();
+            mockTransport.Setup(connector => connector.Subscribe(It.IsAny<IObserver<byte[]>>())).Callback<IObserver<byte[]>>(observer => inTransport.Subscribe(observer));
+            mockTransport.Setup(connector => connector.OnNext(TestData.ReqPQ)).Callback(() => inTransport.OnNext(TestData.ResPQ));
+            mockTransport.Setup(connector => connector.OnNext(TestData.ReqDHParams)).Callback(() => inTransport.OnNext(TestData.ServerDHParams));
+            mockTransport.Setup(connector => connector.OnNext(TestData.SetClientDHParams)).Callback(() => inTransport.OnNext(TestData.DhGenOk));
 
             var mockEncryptionServices = new Mock<IEncryptionServices>();
             mockEncryptionServices.Setup(services => services.RSAEncrypt(It.IsAny<byte[]>(), It.IsAny<PublicKey>())).Returns(TestData.EncryptedData);
@@ -51,7 +51,8 @@ namespace SharpMTProto.Tests
                         TestData.TmpAesKey, TestData.TmpAesIV)).Returns(TestData.SetClientDHParamsEncryptedData);
             mockEncryptionServices.Setup(services => services.DH(TestData.B, TestData.G, TestData.GA, TestData.P)).Returns(new DHOutParams(TestData.GB, TestData.AuthKey));
 
-            serviceLocator.RegisterInstance(Mock.Of<IConnectorFactory>(factory => factory.CreateConnector() == mockConnector.Object));
+            serviceLocator.RegisterInstance(mockTransport.Object);
+            serviceLocator.RegisterType<ITransportFactory, TransportFactory>();
             serviceLocator.RegisterInstance(TLRig.Default);
             serviceLocator.RegisterInstance<IMessageIdGenerator>(new TestMessageIdsGenerator());
             serviceLocator.RegisterInstance<INonceGenerator>(new TestNonceGenerator());

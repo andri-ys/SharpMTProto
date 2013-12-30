@@ -83,11 +83,11 @@
       <Link>Properties\CommonAssemblyInfo.cs</Link>
     </Compile>
     <Compile Include="Exceptions.cs" />
-    <Compile Include="IConnector.cs" />
+    <Compile Include="ITransport.cs" />
     <Compile Include="IEncryptionServices.cs" />
     <Compile Include="IHashServices.cs" />
     <Compile Include="IMessage.cs" />
-    <Compile Include="IConnectorFactory.cs" />
+    <Compile Include="TransportFactory.cs" />
     <Compile Include="IMTProtoConnection.cs" />
     <Compile Include="MTProtoConnectionFactory.cs" />
     <Compile Include="PublicKey.cs" />

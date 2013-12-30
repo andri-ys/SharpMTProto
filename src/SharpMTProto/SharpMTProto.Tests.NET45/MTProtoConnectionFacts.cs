@@ -39,11 +39,11 @@ namespace SharpMTProto.Tests
 
             var inConnector = new Subject<byte[]>();
 
-            var mockConnector = new Mock<IConnector>();
+            var mockConnector = new Mock<ITransport>();
             mockConnector.Setup(connector => connector.Subscribe(It.IsAny<IObserver<byte[]>>())).Callback<IObserver<byte[]>>(observer => inConnector.Subscribe(observer));
 
-            var mockConnectionFactory = new Mock<IConnectorFactory>();
-            mockConnectionFactory.Setup(manager => manager.CreateConnector()).Returns(() => mockConnector.Object).Verifiable();
+            var mockConnectionFactory = new Mock<ITransportFactory>();
+            mockConnectionFactory.Setup(manager => manager.CreateTransport()).Returns(() => mockConnector.Object).Verifiable();
 
             serviceLocator.RegisterInstance(mockConnectionFactory.Object);
             serviceLocator.RegisterInstance(TLRig.Default);
@@ -85,12 +85,12 @@ namespace SharpMTProto.Tests
 
             var inConnector = new Subject<byte[]>();
 
-            var mockConnector = new Mock<IConnector>();
+            var mockConnector = new Mock<ITransport>();
             mockConnector.Setup(connector => connector.Subscribe(It.IsAny<IObserver<byte[]>>())).Callback<IObserver<byte[]>>(observer => inConnector.Subscribe(observer));
             mockConnector.Setup(connector => connector.OnNext(It.IsAny<byte[]>())).Callback(() => inConnector.OnNext(expectedResponseMessage.MessageBytes));
 
-            var mockConnectionFactory = new Mock<IConnectorFactory>();
-            mockConnectionFactory.Setup(manager => manager.CreateConnector()).Returns(() => mockConnector.Object).Verifiable();
+            var mockConnectionFactory = new Mock<ITransportFactory>();
+            mockConnectionFactory.Setup(manager => manager.CreateTransport()).Returns(() => mockConnector.Object).Verifiable();
 
             serviceLocator.RegisterInstance(mockConnectionFactory.Object);
             serviceLocator.RegisterInstance(TLRig.Default);
@@ -119,10 +119,10 @@ namespace SharpMTProto.Tests
         {
             IServiceLocator serviceLocator = new ServiceLocator();
 
-            var mockConnector = new Mock<IConnector>();
+            var mockConnector = new Mock<ITransport>();
 
-            var mockConnectionFactory = new Mock<IConnectorFactory>();
-            mockConnectionFactory.Setup(manager => manager.CreateConnector()).Returns(() => mockConnector.Object).Verifiable();
+            var mockConnectionFactory = new Mock<ITransportFactory>();
+            mockConnectionFactory.Setup(manager => manager.CreateTransport()).Returns(() => mockConnector.Object).Verifiable();
 
             serviceLocator.RegisterInstance(mockConnectionFactory.Object);
             serviceLocator.RegisterInstance(TLRig.Default);

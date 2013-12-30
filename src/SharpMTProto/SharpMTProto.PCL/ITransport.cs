@@ -11,16 +11,16 @@ using System.Threading.Tasks;
 
 namespace SharpMTProto
 {
-    public enum ConnectorState
+    public enum TransportState
     {
         Disconnected = 0,
         Connected = 1
     }
 
-    public interface IConnector : ISubject<byte[]>, IDisposable
+    public interface ITransport : ISubject<byte[]>, IDisposable
     {
         bool IsConnected { get; }
-        ConnectorState State { get; }
+        TransportState State { get; }
         Task Connect(TimeSpan timeout);
         Task Connect(TimeSpan timeout, CancellationToken token);
     }

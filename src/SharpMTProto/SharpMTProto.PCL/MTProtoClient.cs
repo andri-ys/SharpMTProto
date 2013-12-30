@@ -60,16 +60,14 @@ namespace SharpMTProto
 
             IMTProtoConnection connection = _connectionFactory.Create();
 
-            byte[] authKey = null;
-
             try
             {
                 Int128 nonce = _nonceGenerator.GetNonce(16).ToInt128();
 
-                Log.Info(string.Format("Creating auth key with nonce [0x{0:X16}]...", nonce));
+                Log.Debug(string.Format("Creating auth key (nonce [0x{0:X16}])...", nonce));
 
                 // Connecting.
-                Log.Info("Connecting...");
+                Log.Debug("Connecting...");
                 MTProtoConnectResult result = await connection.Connect();
                 if (result != MTProtoConnectResult.Success)
                 {
@@ -77,7 +75,7 @@ namespace SharpMTProto
                 }
 
                 // Requesting PQ.
-                Log.Info("Requesting PQ (with nonce: 0x{0:X16})...", nonce);
+                Log.Debug("Requesting PQ...");
                 var resPQ = await connection.ReqPqAsync(new ReqPqArgs {Nonce = nonce}) as ResPQ;
                 if (resPQ == null)
                 {
@@ -85,7 +83,7 @@ namespace SharpMTProto
                 }
                 CheckNonce(nonce, resPQ.Nonce);
 
-                Log.Info(string.Format("Response PQ: [0x{0}], server nonce: [0x{1:X16}], {2}.", resPQ.Pq.ToHexaString(), resPQ.ServerNonce,
+                Log.Debug(string.Format("Response PQ: [0x{0}], server nonce: [0x{1:X16}], {2}.", resPQ.Pq.ToHexaString(), resPQ.ServerNonce,
                     resPQ.ServerPublicKeyFingerprints.Aggregate("public keys fingerprints:", (text, fingerprint) => text + " [0x" + fingerprint.ToString("X8") + "]")));
 
                 Int128 serverNonce = resPQ.ServerNonce;
@@ -95,7 +93,7 @@ namespace SharpMTProto
                 ReqDHParamsArgs reqDhParamsArgs = CreateReqDhParamsArgs(resPQ, out pqInnerData);
                 Int256 newNonce = pqInnerData.NewNonce;
 
-                Log.Info(string.Format("Requesting DH params with new nonce: [0x{0:X32}]...", newNonce));
+                Log.Debug(string.Format("Requesting DH params with new nonce: [0x{0:X32}]...", newNonce));
 
                 IServerDHParams serverDHParams = await connection.ReqDHParamsAsync(reqDhParamsArgs);
                 if (serverDHParams == null)
@@ -119,13 +117,13 @@ namespace SharpMTProto
                 CheckNonce(nonce, dhParamsOk.Nonce);
                 CheckNonce(serverNonce, dhParamsOk.ServerNonce);
 
-                Log.Info("Received server DH params. Computing temp AES key and IV...");
+                Log.Debug("Received server DH params. Computing temp AES key and IV...");
 
                 byte[] tmpAesKey;
                 byte[] tmpAesIV;
                 ComputeTmpAesKeyAndIV(newNonce, serverNonce, out tmpAesKey, out tmpAesIV);
 
-                Log.Info("Decrypting server DH inner data...");
+                Log.Debug("Decrypting server DH inner data...");
 
                 ServerDHInnerData serverDHInnerData = DecryptServerDHInnerData(dhParamsOk.EncryptedAnswer, tmpAesKey, tmpAesIV);
                 // TODO: Implement checking.
@@ -167,7 +165,7 @@ namespace SharpMTProto
                 // Setting of client DH params.
                 for (int retry = 0; retry < AuthRetryCount; retry++)
                 {
-                    Log.Info(string.Format("Trial #{0} to set client DH params...", retry + 1));
+                    Log.Debug(string.Format("Trial #{0} to set client DH params...", retry + 1));
 
                     byte[] b = _nonceGenerator.GetNonce(256);
                     byte[] g = serverDHInnerData.G.ToBytes(false);
@@ -175,7 +173,7 @@ namespace SharpMTProto
                     byte[] p = serverDHInnerData.DhPrime;
 
                     DHOutParams dhOutParams = _encryptionServices.DH(b, g, ga, p);
-                    authKey = dhOutParams.S;
+                    byte[] authKey = dhOutParams.S;
 
                     var clientDHInnerData = new ClientDHInnerData
                     {
@@ -184,6 +182,9 @@ namespace SharpMTProto
                         RetryId = authKeyAuxHash == null ? 0 : authKeyAuxHash.ToUInt64(),
                         GB = dhOutParams.GB
                     };
+
+                    Log.Debug(string.Format("DH data: B:[0x{0}], G:[0x{1}], GB:[0x{2}], P:[0x{3}], S:[0x{4}].", b.ToHexaString(), g.ToHexaString(), dhOutParams.GB.ToHexaString(),
+                        p.ToHexaString(), authKey.ToHexaString()));
 
                     // byte[] authKeyHash = ComputeSHA1(authKey).Skip(HashLength - 8).Take(8).ToArray(); // Not used in client.
                     authKeyAuxHash = ComputeSHA1(authKey).Take(8).ToArray();
@@ -197,48 +198,52 @@ namespace SharpMTProto
                     byte[] encryptedData = _encryptionServices.Aes256IgeEncrypt(dataWithHash, tmpAesKey, tmpAesIV);
                     var setClientDHParamsArgs = new SetClientDHParamsArgs {Nonce = nonce, ServerNonce = serverNonce, EncryptedData = encryptedData};
 
+                    Log.Debug("Setting client DH params...");
+
                     ISetClientDHParamsAnswer setClientDHParamsAnswer = await connection.SetClientDHParamsAsync(setClientDHParamsArgs);
                     var dhGenOk = setClientDHParamsAnswer as DhGenOk;
                     if (dhGenOk != null)
                     {
+                        Log.Debug("OK.");
+
                         CheckNonce(nonce, dhGenOk.Nonce);
                         CheckNonce(serverNonce, dhGenOk.ServerNonce);
                         Int128 newNonceHash1 = ComputeNewNonceHash(newNonce, 1, authKeyAuxHash);
-                        if (dhGenOk.NewNonceHash1 != newNonceHash1)
-                        {
-                            throw new InvalidResponseException("New nonce hash 1 (DhGenOk) is invalid.");
-                        }
+                        CheckNonce(newNonceHash1, dhGenOk.NewNonceHash1);
+
+                        Log.Debug(string.Format("Negotiated auth key: [0x{0}].", authKey.ToHexaString()));
+
                         return authKey;
                     }
                     var dhGenRetry = setClientDHParamsAnswer as DhGenRetry;
                     if (dhGenRetry != null)
                     {
+                        Log.Debug("Retry.");
+
                         CheckNonce(nonce, dhGenRetry.Nonce);
                         CheckNonce(serverNonce, dhGenRetry.ServerNonce);
                         Int128 newNonceHash2 = ComputeNewNonceHash(newNonce, 2, authKeyAuxHash);
-                        if (dhGenRetry.NewNonceHash2 != newNonceHash2)
-                        {
-                            throw new InvalidResponseException("New nonce hash 2 (DhGenRetry) is invalid.");
-                        }
+                        CheckNonce(newNonceHash2, dhGenRetry.NewNonceHash2);
                         continue;
                     }
                     var dhGenFail = setClientDHParamsAnswer as DhGenFail;
                     if (dhGenFail != null)
                     {
+                        Log.Debug("Fail.");
+
                         CheckNonce(nonce, dhGenFail.Nonce);
                         CheckNonce(serverNonce, dhGenFail.ServerNonce);
                         Int128 newNonceHash3 = ComputeNewNonceHash(newNonce, 3, authKeyAuxHash);
-                        if (dhGenFail.NewNonceHash3 != newNonceHash3)
-                        {
-                            throw new InvalidResponseException("New nonce hash 3 (DhGenFail) is invalid.");
-                        }
+                        CheckNonce(newNonceHash3, dhGenFail.NewNonceHash3);
                         throw new MTProtoException("Failed to set client DH params.");
                     }
                 }
+                throw new MTProtoException(string.Format("Failed to negotiate an auth key in {0} trials.", AuthRetryCount));
             }
             catch (Exception e)
             {
                 Log.Error(e, "Could not create auth key.");
+                throw;
             }
             finally
             {
@@ -247,7 +252,6 @@ namespace SharpMTProto
                     connection.Dispose();
                 }
             }
-            return authKey;
         }
 
         private Int128 ComputeNewNonceHash(Int256 newNonce, byte num, byte[] authKeyAuxHash)

@@ -139,7 +139,7 @@ namespace SharpMTProto
                     try
                     {
                         _state = MTProtoConnectionState.Connecting;
-                        Log.Info("Connecting...");
+                        Log.Debug("Connecting...");
 
                         _connectionCts = new CancellationTokenSource();
                         _connectionCancellationToken = _connectionCts.Token;
@@ -161,18 +161,18 @@ namespace SharpMTProto
                         // TODO: add retry logic.
                         await _connector.Connect(DefaultConnectTimeout, _connectionCancellationToken);
 
-                        Log.Info("Connected.");
+                        Log.Debug("Connected.");
                         result = MTProtoConnectResult.Success;
                     }
                     catch (TimeoutException e)
                     {
                         result = MTProtoConnectResult.Timeout;
-                        Log.Error(e, "Failed to connect due to timeout.");
+                        Log.Debug(e, "Failed to connect due to timeout.");
                     }
                     catch (Exception e)
                     {
                         result = MTProtoConnectResult.Other;
-                        Log.Error(e, "Failed to connect.");
+                        Log.Debug(e, "Failed to connect.");
                     }
                     finally
                     {
@@ -228,7 +228,7 @@ namespace SharpMTProto
 
         private static void LogMessageInOut(byte[] messageBytes, string inOrOut)
         {
-            Log.Info(string.Format("{0} ({1} bytes): {2}", inOrOut, messageBytes.Length, messageBytes.ToHexaString(spaceEveryByte: true)));
+            Log.Debug(string.Format("{0} ({1} bytes): {2}", inOrOut, messageBytes.Length, messageBytes.ToHexaString(spaceEveryByte: true)));
         }
 
         /// <summary>
@@ -241,14 +241,14 @@ namespace SharpMTProto
             TLStreamer streamer = null;
             try
             {
-                Log.Info("Processing incoming message.");
+                Log.Debug("Processing incoming message.");
                 streamer = new TLStreamer(bytes);
                 ulong authKeyId = streamer.ReadULong();
-                Log.Info(string.Format("Auth key ID [0x{0:X16}].", authKeyId));
+                Log.Debug(string.Format("Auth key ID [0x{0:X16}].", authKeyId));
                 if (authKeyId == 0)
                 {
                     // Assume the message bytes has an unencrypted message.
-                    Log.Info(string.Format("Assume this is unencrypted message."));
+                    Log.Debug(string.Format("Assume this is unencrypted message."));
 
                     // Reading message ID.
                     ulong messageId = streamer.ReadULong();
@@ -276,14 +276,14 @@ namespace SharpMTProto
                     // Notify in-messages subject.
                     var message = new UnencryptedMessage(messageId, messageData);
 
-                    Log.Info(string.Format("Received unencrypted message. Message ID: [0x{0:X16}]. Message data length: {1} bytes.", messageId, messageDataLength));
+                    Log.Debug(string.Format("Received unencrypted message. Message ID: [0x{0:X16}]. Message data length: {1} bytes.", messageId, messageDataLength));
 
                     _inMessages.OnNext(message);
                 }
                 else
                 {
                     // Assume the stream has an encrypted message.
-                    Log.Info(string.Format("Auth key ID [0x{0:X16}]. Assume this is encrypted message. (Encrypted messages NOT supported yet. Skipping.)", authKeyId));
+                    Log.Debug(string.Format("Auth key ID [0x{0:X16}]. Assume this is encrypted message. (Encrypted messages NOT supported yet. Skipping.)", authKeyId));
                 }
             }
             catch (InvalidMessageException e)

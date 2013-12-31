@@ -39,6 +39,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\CommonAssemblyInfo.cs">
+      <Link>Properties\CommonAssemblyInfo.cs</Link>
+    </Compile>
     <Compile Include="EncryptionServices.cs" />
     <Compile Include="HashServices.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

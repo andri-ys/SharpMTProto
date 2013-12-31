@@ -7,4 +7,4 @@
 using System.Reflection;
 
 [assembly: AssemblyTitle("SharpMTProto")]
-[assembly: AssemblyDescription("MTProto library.")]
+[assembly: AssemblyDescription("Library for MTProto protocol.")]

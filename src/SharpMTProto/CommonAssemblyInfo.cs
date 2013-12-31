@@ -8,10 +8,10 @@ using System.Reflection;
 using System.Resources;
 
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("SharpTL")]
+[assembly: AssemblyProduct("SharpMTProto")]
 [assembly: AssemblyCopyright("Copyright © 2013 Alexander Logger.")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 [assembly: NeutralResourcesLanguage("en")]
-[assembly: AssemblyVersion("0.2.0.0")]
-[assembly: AssemblyFileVersion("0.2.0.0")]
+[assembly: AssemblyVersion("0.1.0.0")]
+[assembly: AssemblyFileVersion("0.1.0.0")]

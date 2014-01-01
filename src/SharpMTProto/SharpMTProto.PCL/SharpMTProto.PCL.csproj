@@ -83,13 +83,16 @@
       <Link>Properties\CommonAssemblyInfo.cs</Link>
     </Compile>
     <Compile Include="Exceptions.cs" />
-    <Compile Include="ITransport.cs" />
+    <Compile Include="Transport\ITransport.cs" />
     <Compile Include="IEncryptionServices.cs" />
     <Compile Include="IHashServices.cs" />
     <Compile Include="IMessage.cs" />
     <Compile Include="MTProtoClient.AuthKey.cs" />
     <Compile Include="MTProtoClient.Disposable.cs" />
-    <Compile Include="TransportFactory.cs" />
+    <Compile Include="Transport\ITransportConfigProvider.cs" />
+    <Compile Include="Transport\TcpTransportConfig.cs" />
+    <Compile Include="Transport\TransportConfig.cs" />
+    <Compile Include="Transport\ITransportFactory.cs" />
     <Compile Include="IMTProtoConnection.cs" />
     <Compile Include="MTProtoConnectionFactory.cs" />
     <Compile Include="PublicKey.cs" />

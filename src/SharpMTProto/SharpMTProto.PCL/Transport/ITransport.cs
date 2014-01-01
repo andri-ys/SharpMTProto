@@ -1,6 +1,6 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="IConnector.cs">
-//   Copyright (c) 2013 Alexander Logger. All rights reserved.
+// <copyright file="ITransport.cs">
+//   Copyright (c) 2014 Alexander Logger. All rights reserved.
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -9,7 +9,7 @@ using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace SharpMTProto
+namespace SharpMTProto.Transport
 {
     public enum TransportState
     {

@@ -28,7 +28,7 @@ namespace SharpMTProto
         {
             ThrowIfDisposed();
 
-            IMTProtoConnection connection = _connectionFactory.Create();
+            IMTProtoConnection connection = _connectionFactory.Create(_transportConfigProvider.DefaultTransportConfig);
 
             try
             {

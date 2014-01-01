@@ -17,6 +17,7 @@ using Catel;
 using Catel.Logging;
 using MTProtoSchema;
 using SharpMTProto.Annotations;
+using SharpMTProto.Transport;
 using SharpTL;
 using AsyncLock = Nito.AsyncEx.AsyncLock;
 
@@ -49,7 +50,8 @@ namespace SharpMTProto
         private ReplaySubject<IMessage> _outMessagesHistory = new ReplaySubject<IMessage>(100);
         #endregion
 
-        public MTProtoConnection([NotNull] ITransportFactory transportFactory, [NotNull] TLRig tlRig, [NotNull] IMessageIdGenerator messageIdGenerator)
+        public MTProtoConnection([NotNull] ITransportFactory transportFactory, [NotNull] TLRig tlRig, [NotNull] IMessageIdGenerator messageIdGenerator,
+            TransportConfig transportConfig)
         {
             Argument.IsNotNull(() => transportFactory);
             Argument.IsNotNull(() => tlRig);
@@ -63,7 +65,7 @@ namespace SharpMTProto
             DefaultConnectTimeout = TimeSpan.FromSeconds(5);
 
             // Init transport.
-            _transport = _transportFactory.CreateTransport();
+            _transport = _transportFactory.CreateTransport(transportConfig);
 
             // History of messages in/out.
             _inMessages.ObserveOn(DefaultScheduler.Instance).Subscribe(_inMessagesHistory);

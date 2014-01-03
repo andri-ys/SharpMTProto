@@ -33,7 +33,6 @@ namespace SharpMTProto
 
         public IMTProtoConnection Create(TransportConfig transportConfig)
         {
-//            var connection = _serviceLocator.ResolveType<IMTProtoConnection>();
             var connection = _typeFactory.CreateInstanceWithParametersAndAutoCompletion<MTProtoConnection>(transportConfig);
 
             connection.DefaultRpcTimeout = DefaultRpcTimeout;

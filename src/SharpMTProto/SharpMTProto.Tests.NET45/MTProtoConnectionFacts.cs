@@ -41,13 +41,14 @@ namespace SharpMTProto.Tests
 
             var inConnector = new Subject<byte[]>();
 
-            var mockConnector = new Mock<ITransport>();
-            mockConnector.Setup(connector => connector.Subscribe(It.IsAny<IObserver<byte[]>>())).Callback<IObserver<byte[]>>(observer => inConnector.Subscribe(observer));
+            var mockTransport = new Mock<ITransport>();
+            mockTransport.Setup(connector => connector.Subscribe(It.IsAny<IObserver<byte[]>>())).Callback<IObserver<byte[]>>(observer => inConnector.Subscribe(observer));
 
-            var mockConnectionFactory = new Mock<ITransportFactory>();
-            mockConnectionFactory.Setup(manager => manager.CreateTransport(It.IsAny<TransportConfig>())).Returns(() => mockConnector.Object).Verifiable();
+            var mockTransportFactory = new Mock<ITransportFactory>();
+            mockTransportFactory.Setup(manager => manager.CreateTransport(It.IsAny<TransportConfig>())).Returns(() => mockTransport.Object).Verifiable();
 
-            serviceLocator.RegisterInstance(mockConnectionFactory.Object);
+            serviceLocator.RegisterInstance(mockTransportFactory.Object);
+            serviceLocator.RegisterInstance(Mock.Of<TransportConfig>());
             serviceLocator.RegisterInstance(TLRig.Default);
             serviceLocator.RegisterInstance<IMessageIdGenerator>(new TestMessageIdsGenerator());
             serviceLocator.RegisterType<IMTProtoConnection, MTProtoConnection>(RegistrationType.Transient);
@@ -61,10 +62,10 @@ namespace SharpMTProto.Tests
                 connection.SendUnencryptedMessage(message);
 
                 await Task.Delay(100); // Wait while internal sender processes the message.
-                mockConnector.Verify(connector => connector.OnNext(expectedMessageBytes), Times.Once);
+                mockTransport.Verify(connector => connector.OnNext(expectedMessageBytes), Times.Once);
 
                 // Testing receiving.
-                mockConnector.Verify(connector => connector.Subscribe(It.IsAny<IObserver<byte[]>>()), Times.AtLeastOnce());
+                mockTransport.Verify(connector => connector.Subscribe(It.IsAny<IObserver<byte[]>>()), Times.AtLeastOnce());
 
                 inConnector.OnNext(expectedMessageBytes);
 
@@ -87,14 +88,15 @@ namespace SharpMTProto.Tests
 
             var inConnector = new Subject<byte[]>();
 
-            var mockConnector = new Mock<ITransport>();
-            mockConnector.Setup(connector => connector.Subscribe(It.IsAny<IObserver<byte[]>>())).Callback<IObserver<byte[]>>(observer => inConnector.Subscribe(observer));
-            mockConnector.Setup(connector => connector.OnNext(It.IsAny<byte[]>())).Callback(() => inConnector.OnNext(expectedResponseMessage.MessageBytes));
+            var mockTransport = new Mock<ITransport>();
+            mockTransport.Setup(connector => connector.Subscribe(It.IsAny<IObserver<byte[]>>())).Callback<IObserver<byte[]>>(observer => inConnector.Subscribe(observer));
+            mockTransport.Setup(connector => connector.OnNext(It.IsAny<byte[]>())).Callback(() => inConnector.OnNext(expectedResponseMessage.MessageBytes));
 
-            var mockConnectionFactory = new Mock<ITransportFactory>();
-            mockConnectionFactory.Setup(manager => manager.CreateTransport(It.IsAny<TransportConfig>())).Returns(() => mockConnector.Object).Verifiable();
+            var mockTransportFactory = new Mock<ITransportFactory>();
+            mockTransportFactory.Setup(manager => manager.CreateTransport(It.IsAny<TransportConfig>())).Returns(() => mockTransport.Object).Verifiable();
 
-            serviceLocator.RegisterInstance(mockConnectionFactory.Object);
+            serviceLocator.RegisterInstance(mockTransportFactory.Object);
+            serviceLocator.RegisterInstance(Mock.Of<TransportConfig>());
             serviceLocator.RegisterInstance(TLRig.Default);
             serviceLocator.RegisterInstance<IMessageIdGenerator>(new TestMessageIdsGenerator());
             serviceLocator.RegisterType<IMTProtoConnection, MTProtoConnection>(RegistrationType.Transient);
@@ -110,7 +112,7 @@ namespace SharpMTProto.Tests
 
                 await Task.Delay(100); // Wait while internal sender processes the message.
                 IMessage inMessageTask = await connection.OutMessagesHistory.FirstAsync().ToTask();
-                mockConnector.Verify(connector => connector.OnNext(inMessageTask.MessageBytes), Times.Once);
+                mockTransport.Verify(connector => connector.OnNext(inMessageTask.MessageBytes), Times.Once);
 
                 await connection.Disconnect();
             }
@@ -121,12 +123,13 @@ namespace SharpMTProto.Tests
         {
             IServiceLocator serviceLocator = new ServiceLocator();
 
-            var mockConnector = new Mock<ITransport>();
+            var mockTransport = new Mock<ITransport>();
 
-            var mockConnectionFactory = new Mock<ITransportFactory>();
-            mockConnectionFactory.Setup(manager => manager.CreateTransport(It.IsAny<TransportConfig>())).Returns(() => mockConnector.Object).Verifiable();
+            var mockTransportFactory = new Mock<ITransportFactory>();
+            mockTransportFactory.Setup(manager => manager.CreateTransport(It.IsAny<TransportConfig>())).Returns(() => mockTransport.Object).Verifiable();
 
-            serviceLocator.RegisterInstance(mockConnectionFactory.Object);
+            serviceLocator.RegisterInstance(mockTransportFactory.Object);
+            serviceLocator.RegisterInstance(Mock.Of<TransportConfig>());
             serviceLocator.RegisterInstance(TLRig.Default);
             serviceLocator.RegisterInstance<IMessageIdGenerator>(new TestMessageIdsGenerator());
             serviceLocator.RegisterType<IMTProtoConnection, MTProtoConnection>(RegistrationType.Transient);
@@ -154,6 +157,7 @@ namespace SharpMTProto.Tests
             mockTransportFactory.Setup(manager => manager.CreateTransport(It.IsAny<TransportConfig>())).Returns(() => mockTransport.Object).Verifiable();
 
             serviceLocator.RegisterInstance(mockTransportFactory.Object);
+            serviceLocator.RegisterInstance(Mock.Of<TransportConfig>());
             serviceLocator.RegisterInstance(TLRig.Default);
             serviceLocator.RegisterInstance<IMessageIdGenerator>(new TestMessageIdsGenerator());
             serviceLocator.RegisterType<IMTProtoConnection, MTProtoConnection>(RegistrationType.Transient);

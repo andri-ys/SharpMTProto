@@ -4,20 +4,38 @@
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
-using System;
 using System.Net.Sockets;
-using System.Threading.Tasks;
 
 namespace SharpMTProto.Extra
 {
     public static class SocketExtensions
     {
+        public static SocketAwaitable ConnectAsync(this Socket socket, SocketAwaitable awaitable)
+        {
+            awaitable.Reset();
+            if (!socket.ConnectAsync(awaitable.EventArgs))
+            {
+                awaitable.IsCompleted = true;
+            }
+            return awaitable;
+        }
+
+        public static SocketAwaitable DisconnectAsync(this Socket socket, SocketAwaitable awaitable)
+        {
+            awaitable.Reset();
+            if (!socket.DisconnectAsync(awaitable.EventArgs))
+            {
+                awaitable.IsCompleted = true;
+            }
+            return awaitable;
+        }
+
         public static SocketAwaitable ReceiveAsync(this Socket socket, SocketAwaitable awaitable)
         {
             awaitable.Reset();
             if (!socket.ReceiveAsync(awaitable.EventArgs))
             {
-                awaitable.WasCompleted = true;
+                awaitable.IsCompleted = true;
             }
             return awaitable;
         }
@@ -27,9 +45,21 @@ namespace SharpMTProto.Extra
             awaitable.Reset();
             if (!socket.SendAsync(awaitable.EventArgs))
             {
-                awaitable.WasCompleted = true;
+                awaitable.IsCompleted = true;
             }
             return awaitable;
+        }
+
+        public static bool IsConnected(this Socket socket)
+        {
+            try
+            {
+                return !(socket.Poll(1, SelectMode.SelectRead) && socket.Available == 0);
+            }
+            catch (SocketException)
+            {
+                return false;
+            }
         }
     }
 }

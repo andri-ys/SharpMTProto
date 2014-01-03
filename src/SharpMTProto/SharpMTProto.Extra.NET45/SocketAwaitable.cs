@@ -16,9 +16,8 @@ namespace SharpMTProto.Extra
     {
         private static readonly Action Sentinel = () => { };
 
-        internal readonly SocketAsyncEventArgs EventArgs;
-        internal Action Continuation;
-        internal bool WasCompleted;
+        private Action _continuation;
+        private bool _isCompleted;
 
         public SocketAwaitable(SocketAsyncEventArgs eventArgs)
         {
@@ -29,7 +28,7 @@ namespace SharpMTProto.Extra
             EventArgs = eventArgs;
             eventArgs.Completed += delegate
             {
-                Action prev = Continuation ?? Interlocked.CompareExchange(ref Continuation, Sentinel, null);
+                Action prev = _continuation ?? Interlocked.CompareExchange(ref _continuation, Sentinel, null);
                 if (prev != null)
                 {
                     prev();
@@ -37,14 +36,17 @@ namespace SharpMTProto.Extra
             };
         }
 
+        public SocketAsyncEventArgs EventArgs { get; private set; }
+
         public bool IsCompleted
         {
-            get { return WasCompleted; }
+            get { return _isCompleted; }
+            internal set { _isCompleted = value; }
         }
 
         public void OnCompleted(Action continuation)
         {
-            if (Continuation == Sentinel || Interlocked.CompareExchange(ref Continuation, continuation, null) == Sentinel)
+            if (_continuation == Sentinel || Interlocked.CompareExchange(ref _continuation, continuation, null) == Sentinel)
             {
                 Task.Run(continuation);
             }
@@ -52,8 +54,8 @@ namespace SharpMTProto.Extra
 
         internal void Reset()
         {
-            WasCompleted = false;
-            Continuation = null;
+            _isCompleted = false;
+            _continuation = null;
         }
 
         public SocketAwaitable GetAwaiter()

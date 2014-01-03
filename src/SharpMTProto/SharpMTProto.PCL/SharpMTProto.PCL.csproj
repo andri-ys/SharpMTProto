@@ -91,6 +91,7 @@
     <Compile Include="MTProtoClient.Disposable.cs" />
     <Compile Include="Transport\ITransportConfigProvider.cs" />
     <Compile Include="Transport\TcpTransportConfig.cs" />
+    <Compile Include="Transport\TcpTransportPacket.cs" />
     <Compile Include="Transport\TransportConfig.cs" />
     <Compile Include="Transport\ITransportFactory.cs" />
     <Compile Include="IMTProtoConnection.cs" />

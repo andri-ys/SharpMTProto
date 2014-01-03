@@ -50,8 +50,8 @@ namespace SharpMTProto
         private ReplaySubject<IMessage> _outMessagesHistory = new ReplaySubject<IMessage>(100);
         #endregion
 
-        public MTProtoConnection([NotNull] ITransportFactory transportFactory, [NotNull] TLRig tlRig, [NotNull] IMessageIdGenerator messageIdGenerator,
-            TransportConfig transportConfig)
+        public MTProtoConnection(TransportConfig transportConfig, [NotNull] ITransportFactory transportFactory, [NotNull] TLRig tlRig,
+            [NotNull] IMessageIdGenerator messageIdGenerator)
         {
             Argument.IsNotNull(() => transportFactory);
             Argument.IsNotNull(() => tlRig);

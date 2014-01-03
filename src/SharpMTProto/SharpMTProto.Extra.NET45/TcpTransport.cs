@@ -7,9 +7,14 @@
 using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
+using BigMath.Utils;
+using Catel.Logging;
+using Nito.AsyncEx;
 using SharpMTProto.Transport;
+using SharpTL;
 
 namespace SharpMTProto.Extra
 {
@@ -18,13 +23,23 @@ namespace SharpMTProto.Extra
     /// </summary>
     public class TcpTransport : ITransport
     {
-        private const int MaxBufferSize = 2048;
-        private static readonly ManualResetEvent ClientDone = new ManualResetEvent(false);
+        private static readonly ILog Log = LogManager.GetCurrentClassLogger();
         private readonly TimeSpan _connectTimeout;
-
         private readonly IPAddress _ipAddress;
         private readonly int _port;
+        private readonly byte[] _readerBuffer;
+
+        private readonly AsyncLock _stateAsyncLock = new AsyncLock();
+
+        private CancellationTokenSource _connectionCancellationTokenSource;
+        private Subject<byte[]> _in = new Subject<byte[]>();
+        private int _nextPacketBytesCountLeft;
+        private byte[] _nextPacketDataBuffer;
+        private TLStreamer _nextPacketStreamer;
+        private Subject<byte[]> _out = new Subject<byte[]>();
+        private Task _receiverTask;
         private Socket _socket;
+        private volatile TransportState _state = TransportState.Disconnected;
 
         public TcpTransport(TcpTransportConfig config)
         {
@@ -42,31 +57,30 @@ namespace SharpMTProto.Extra
             _port = config.Port;
             _ipAddress = ipAddress;
             _connectTimeout = config.ConnectTimeout;
+
+            _readerBuffer = new byte[config.MaxBufferSize];
+
+            _socket = new Socket(_ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
         }
 
         public void OnCompleted()
         {
-            throw new NotImplementedException();
+            _out.OnCompleted();
         }
 
         public void OnError(Exception error)
         {
-            throw new NotImplementedException();
+            _out.OnError(error);
         }
 
         public void OnNext(byte[] value)
         {
-            throw new NotImplementedException();
+            _out.OnNext(value);
         }
 
         public IDisposable Subscribe(IObserver<byte[]> observer)
         {
-            throw new NotImplementedException();
-        }
-
-        public void Dispose()
-        {
-            throw new NotImplementedException();
+            return _in.Subscribe(observer);
         }
 
         public bool IsConnected
@@ -74,7 +88,10 @@ namespace SharpMTProto.Extra
             get { return State == TransportState.Connected; }
         }
 
-        public TransportState State { get; private set; }
+        public TransportState State
+        {
+            get { return _state; }
+        }
 
         public async Task Connect()
         {
@@ -83,30 +100,49 @@ namespace SharpMTProto.Extra
 
         public async Task Connect(CancellationToken token)
         {
-            _socket = new Socket(_ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-
-            var args = new SocketAsyncEventArgs {RemoteEndPoint = new IPEndPoint(_ipAddress, _port)};
-            args.Completed += (sender, eventArgs) =>
+            using (await _stateAsyncLock.LockAsync(token))
             {
-                switch (eventArgs.SocketError)
+                if (State == TransportState.Connected)
+                {
+                    return;
+                }
+
+                var args = new SocketAsyncEventArgs {RemoteEndPoint = new IPEndPoint(_ipAddress, _port)};
+
+                var awaitable = new SocketAwaitable(args);
+
+                try
+                {
+                    await _socket.ConnectAsync(awaitable);
+                }
+                catch (SocketException e)
+                {
+                    Log.Debug(e);
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e);
+                    _state = TransportState.Disconnected;
+                    throw;
+                }
+
+                switch (args.SocketError)
                 {
                     case SocketError.Success:
                     case SocketError.IsConnected:
-                        State = TransportState.Connected;
+                        _state = TransportState.Connected;
                         break;
                     default:
-                        State = TransportState.Disconnected;
+                        _state = TransportState.Disconnected;
                         break;
                 }
-
-                ClientDone.Set();
-            };
-
-            ClientDone.Reset();
-
-            _socket.ConnectAsync(args);
-            
-            ClientDone.WaitOne(_connectTimeout);
+                if (_state != TransportState.Connected)
+                {
+                    return;
+                }
+                _connectionCancellationTokenSource = new CancellationTokenSource();
+                _receiverTask = StartReceiver(_connectionCancellationTokenSource.Token);
+            }
         }
 
         public async Task Disconnect()
@@ -114,35 +150,193 @@ namespace SharpMTProto.Extra
             await Disconnect(CancellationToken.None);
         }
 
-        public Task Disconnect(CancellationToken token)
+        public async Task Disconnect(CancellationToken token)
         {
-            throw new NotImplementedException();
-        }
-
-        private async Task ReadAsync()
-        {
-            // Reusable SocketAsyncEventArgs and awaitable wrapper 
-            var args = new SocketAsyncEventArgs();
-            args.SetBuffer(new byte[0x1000], 0, 0x1000);
-            var awaitable = new SocketAwaitable(args);
-
-            // Do processing, continually receiving from the socket 
-            while (true)
+            using (await _stateAsyncLock.LockAsync(token))
             {
-                await _socket.ReceiveAsync(awaitable);
-                if (args.SocketError != SocketError.IsConnected)
+                if (_state == TransportState.Disconnected)
                 {
-                    State = TransportState.Disconnected;
-                    break;
+                    return;
                 }
-                int bytesRead = args.BytesTransferred;
-                if (bytesRead <= 0)
+                var args = new SocketAsyncEventArgs();
+                var awaitable = new SocketAwaitable(args);
+                try
                 {
-                    break;
+                    if (_socket.Connected)
+                    {
+                        _socket.Shutdown(SocketShutdown.Both);
+                        await _socket.DisconnectAsync(awaitable);
+                    }
+                }
+                catch (SocketException e)
+                {
+                    Log.Debug(e);
                 }
 
-                Console.WriteLine(bytesRead);
+                _state = TransportState.Disconnected;
             }
         }
+
+        private async Task StartReceiver(CancellationToken token)
+        {
+            await Task.Run(async () =>
+            {
+                var args = new SocketAsyncEventArgs();
+                args.SetBuffer(_readerBuffer, 0, _readerBuffer.Length);
+                var awaitable = new SocketAwaitable(args);
+
+                while (!token.IsCancellationRequested && _socket.IsConnected())
+                {
+                    try
+                    {
+                        if (_socket.Available == 0)
+                        {
+                            await Task.Delay(100, token);
+                            continue;
+                        }
+                        await _socket.ReceiveAsync(awaitable);
+                    }
+                    catch (SocketException e)
+                    {
+                        Log.Debug(e);
+                    }
+                    if (args.SocketError != SocketError.Success)
+                    {
+                        break;
+                    }
+                    int bytesRead = args.BytesTransferred;
+                    if (bytesRead <= 0)
+                    {
+                        break;
+                    }
+
+                    await ProcessReceivedData(new ArraySegment<byte>(_readerBuffer, 0, bytesRead));
+                }
+                using (await _stateAsyncLock.LockAsync(token))
+                {
+                    _state = TransportState.Disconnected;
+                }
+            }, token).ConfigureAwait(false);
+        }
+
+        private async Task ProcessReceivedData(ArraySegment<byte> buffer)
+        {
+            try
+            {
+                int bytesRead = 0;
+                while (bytesRead < buffer.Count)
+                {
+                    var startIndex = buffer.Offset + bytesRead;
+                    if (_nextPacketBytesCountLeft == 0)
+                    {
+                        if (buffer.Count < 4)
+                        {
+                            // TODO.
+                        }
+                        _nextPacketBytesCountLeft = buffer.Array.ToInt32(startIndex);
+
+                        if (_nextPacketDataBuffer == null || _nextPacketDataBuffer.Length < _nextPacketBytesCountLeft || _nextPacketStreamer == null)
+                        {
+                            _nextPacketDataBuffer = new byte[_nextPacketBytesCountLeft];
+                            _nextPacketStreamer = new TLStreamer(_nextPacketDataBuffer);
+                        }
+                    }
+
+                    int bytesToRead = buffer.Count - bytesRead;
+                    bytesToRead = bytesToRead > _nextPacketBytesCountLeft ? _nextPacketBytesCountLeft : bytesToRead;
+
+                    _nextPacketStreamer.Write(buffer.Array, startIndex, bytesToRead);
+
+                    bytesRead += bytesToRead;
+                    _nextPacketBytesCountLeft -= bytesToRead;
+
+                    if (_nextPacketBytesCountLeft > 0)
+                    {
+                        break;
+                    }
+
+                    var packet = new TcpTransportPacket(_nextPacketDataBuffer);
+
+                    await ProcessReceivedPacket(packet);
+
+                    _nextPacketBytesCountLeft = 0;
+                    _nextPacketStreamer.Position = 0;
+                }
+            }
+            catch (Exception)
+            {
+                if (_nextPacketStreamer != null)
+                {
+                    _nextPacketStreamer.Dispose();
+                    _nextPacketStreamer = null;
+                }
+                _nextPacketDataBuffer = null;
+                _nextPacketBytesCountLeft = 0;
+
+                throw;
+            }
+        }
+
+        private async Task ProcessReceivedPacket(TcpTransportPacket packet)
+        {
+            await Task.Run(() => _in.OnNext(packet.GetPayloadCopy()));
+        }
+
+        #region Disposing
+        public void Dispose()
+        {
+            Dispose(true);
+        }
+
+        protected void Dispose(bool isDisposing)
+        {
+            if (!isDisposing)
+            {
+                return;
+            }
+            if (_connectionCancellationTokenSource != null)
+            {
+                _connectionCancellationTokenSource.Cancel();
+                _connectionCancellationTokenSource = null;
+            }
+            if (_receiverTask != null)
+            {
+                _receiverTask.Dispose();
+                _receiverTask = null;
+            }
+            if (_nextPacketStreamer != null)
+            {
+                _nextPacketStreamer.Dispose();
+                _nextPacketStreamer = null;
+            }
+            if (_out != null)
+            {
+                _out.Dispose();
+                _out = null;
+            }
+            if (_in != null)
+            {
+                _in.Dispose();
+                _in = null;
+            }
+            if (_socket != null)
+            {
+                try
+                {
+                    _socket.Shutdown(SocketShutdown.Both);
+                    _socket.Disconnect(false);
+                    _socket.Close();
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e);
+                }
+                finally
+                {
+                    _socket = null;
+                }
+            }
+        }
+        #endregion
     }
 }

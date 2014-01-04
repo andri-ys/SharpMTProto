@@ -6,7 +6,7 @@
 
 using FluentAssertions;
 using NUnit.Framework;
-using SharpMTProto.Extra;
+using SharpMTProto.Services;
 
 namespace SharpMTProto.Tests
 {

@@ -1,12 +1,12 @@
 // --------------------------------------------------------------------------------------------------------------------
 // <copyright file="MessageIdGenerator.cs">
-//   Copyright (c) 2013 Alexander Logger. All rights reserved.
+//   Copyright (c) 2014 Alexander Logger. All rights reserved.
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
 using SharpMTProto.Utils;
 
-namespace SharpMTProto
+namespace SharpMTProto.Services
 {
     /// <summary>
     ///     Interface for a message ID generator.

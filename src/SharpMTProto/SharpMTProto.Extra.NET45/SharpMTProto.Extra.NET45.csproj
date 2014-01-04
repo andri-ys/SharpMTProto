@@ -7,7 +7,7 @@
     <ProjectGuid>{40D0389A-10FA-4709-A8B6-7074D929F72B}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>SharpMTProto.Extra</RootNamespace>
+    <RootNamespace>SharpMTProto</RootNamespace>
     <AssemblyName>SharpMTProto.Extra</AssemblyName>
     <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
@@ -71,13 +71,13 @@
     <Compile Include="..\CommonAssemblyInfo.cs">
       <Link>Properties\CommonAssemblyInfo.cs</Link>
     </Compile>
-    <Compile Include="EncryptionServices.cs" />
-    <Compile Include="HashServices.cs" />
+    <Compile Include="Services\EncryptionServices.cs" />
+    <Compile Include="Services\HashServices.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SocketAwaitable.cs" />
-    <Compile Include="SocketExtensions.cs" />
-    <Compile Include="TcpTransport.cs" />
-    <Compile Include="TransportFactory.cs" />
+    <Compile Include="Utils\SocketAwaitable.cs" />
+    <Compile Include="Utils\SocketExtensions.cs" />
+    <Compile Include="Transport\TcpTransport.cs" />
+    <Compile Include="Transport\TransportFactory.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\SharpTL\BigMath\src\BigMath\BigMath.PCL\BigMath.PCL.csproj">

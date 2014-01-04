@@ -6,7 +6,7 @@
 
 using System.Net.Sockets;
 
-namespace SharpMTProto.Extra
+namespace SharpMTProto.Utils
 {
     public static class SocketExtensions
     {

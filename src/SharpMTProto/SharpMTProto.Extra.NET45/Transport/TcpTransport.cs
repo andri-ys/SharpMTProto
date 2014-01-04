@@ -1,6 +1,6 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="TcpTransport.cs">
-//   Copyright (c) 2013 Alexander Logger. All rights reserved.
+//   Copyright (c) 2014 Alexander Logger. All rights reserved.
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -13,10 +13,10 @@ using System.Threading.Tasks;
 using BigMath.Utils;
 using Catel.Logging;
 using Nito.AsyncEx;
-using SharpMTProto.Transport;
+using SharpMTProto.Utils;
 using SharpTL;
 
-namespace SharpMTProto.Extra
+namespace SharpMTProto.Transport
 {
     /// <summary>
     ///     MTProto TCP transport.
@@ -226,7 +226,7 @@ namespace SharpMTProto.Extra
                 int bytesRead = 0;
                 while (bytesRead < buffer.Count)
                 {
-                    var startIndex = buffer.Offset + bytesRead;
+                    int startIndex = buffer.Offset + bytesRead;
                     if (_nextPacketBytesCountLeft == 0)
                     {
                         if (buffer.Count < 4)

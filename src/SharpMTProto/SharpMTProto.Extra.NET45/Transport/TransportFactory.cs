@@ -5,9 +5,8 @@
 // --------------------------------------------------------------------------------------------------------------------
 
 using System;
-using SharpMTProto.Transport;
 
-namespace SharpMTProto.Extra
+namespace SharpMTProto.Transport
 {
     public class TransportFactory : ITransportFactory
     {

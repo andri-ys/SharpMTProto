@@ -6,7 +6,7 @@
 
 using FluentAssertions;
 using NUnit.Framework;
-using SharpMTProto.Extra;
+using SharpMTProto.Services;
 using SharpTL;
 
 namespace SharpMTProto.Tests
@@ -24,21 +24,9 @@ namespace SharpMTProto.Tests
             foreach (PublicKey testKey in TestData.TestPublicKeys)
             {
                 keyChain.Contains(testKey.Fingerprint).Should().BeTrue("Because key chain must have added key with fingerprint: {0:X16}.", testKey.Fingerprint);
-                var key = keyChain[testKey.Fingerprint];
+                PublicKey key = keyChain[testKey.Fingerprint];
                 key.Should().NotBeNull();
                 key.ShouldBeEquivalentTo(testKey);
-            }
-        }
-
-        [Test]
-        public void Should_compute_key_fingerprint()
-        {
-            var keyChain = new KeyChain(TLRig.Default, new HashServices());
-
-            foreach (PublicKey testKey in TestData.TestPublicKeys)
-            {
-                var actual = keyChain.ComputeFingerprint(testKey.Modulus, testKey.Exponent);
-                actual.Should().Be(testKey.Fingerprint);
             }
         }
 
@@ -50,6 +38,18 @@ namespace SharpMTProto.Tests
             foreach (PublicKey testKey in TestData.TestPublicKeys)
             {
                 keyChain.CheckKeyFingerprint(testKey).Should().BeTrue();
+            }
+        }
+
+        [Test]
+        public void Should_compute_key_fingerprint()
+        {
+            var keyChain = new KeyChain(TLRig.Default, new HashServices());
+
+            foreach (PublicKey testKey in TestData.TestPublicKeys)
+            {
+                ulong actual = keyChain.ComputeFingerprint(testKey.Modulus, testKey.Exponent);
+                actual.Should().Be(testKey.Fingerprint);
             }
         }
     }

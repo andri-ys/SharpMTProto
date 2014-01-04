@@ -17,6 +17,7 @@ using Catel;
 using Catel.Logging;
 using MTProtoSchema;
 using SharpMTProto.Annotations;
+using SharpMTProto.Services;
 using SharpMTProto.Transport;
 using SharpTL;
 using AsyncLock = Nito.AsyncEx.AsyncLock;

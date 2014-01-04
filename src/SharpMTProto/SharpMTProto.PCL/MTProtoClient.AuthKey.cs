@@ -13,6 +13,7 @@ using BigMath;
 using BigMath.Utils;
 using Catel.Logging;
 using MTProtoSchema;
+using SharpMTProto.Services;
 using SharpTL;
 
 namespace SharpMTProto

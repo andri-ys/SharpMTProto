@@ -17,6 +17,7 @@ using Catel.Logging;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
+using SharpMTProto.Services;
 using SharpMTProto.Transport;
 using SharpTL;
 
@@ -165,7 +166,7 @@ namespace SharpMTProto.Tests
             using (var connection = serviceLocator.ResolveType<IMTProtoConnection>())
             {
                 connection.DefaultConnectTimeout = TimeSpan.FromMilliseconds(100);
-                var result = await connection.Connect();
+                MTProtoConnectResult result = await connection.Connect();
                 result.ShouldBeEquivalentTo(MTProtoConnectResult.Timeout);
             }
         }

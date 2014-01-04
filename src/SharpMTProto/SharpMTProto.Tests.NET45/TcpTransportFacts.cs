@@ -16,8 +16,8 @@ using Catel.Logging;
 using FluentAssertions;
 using Nito.AsyncEx;
 using NUnit.Framework;
-using SharpMTProto.Extra;
 using SharpMTProto.Transport;
+using SharpMTProto.Utils;
 
 namespace SharpMTProto.Tests
 {

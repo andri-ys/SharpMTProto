@@ -7,7 +7,6 @@
 using System;
 using System.Linq;
 using System.Reactive.Subjects;
-using System.Threading;
 using System.Threading.Tasks;
 using BigMath.Utils;
 using Catel.IoC;
@@ -15,7 +14,7 @@ using Catel.Logging;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
-using SharpMTProto.Extra;
+using SharpMTProto.Services;
 using SharpMTProto.Transport;
 using SharpTL;
 
@@ -33,12 +32,12 @@ namespace SharpMTProto.Tests
         [Test]
         public async Task Should_create_auth_key()
         {
-            var defaultRpcTimeout = TimeSpan.FromSeconds(1);
-            var defaultConnectTimeout = TimeSpan.FromSeconds(1);
+            TimeSpan defaultRpcTimeout = TimeSpan.FromSeconds(1);
+            TimeSpan defaultConnectTimeout = TimeSpan.FromSeconds(1);
 
             var serviceLocator = new ServiceLocator();
             var typeFactory = serviceLocator.ResolveType<ITypeFactory>();
-            
+
             var inTransport = new Subject<byte[]>();
             var mockTransport = new Mock<ITransport>();
             mockTransport.Setup(transport => transport.Subscribe(It.IsAny<IObserver<byte[]>>())).Callback<IObserver<byte[]>>(observer => inTransport.Subscribe(observer));

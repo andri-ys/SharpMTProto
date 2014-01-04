@@ -1,13 +1,13 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="HashServices.cs">
-//   Copyright (c) 2013 Alexander Logger. All rights reserved.
+//   Copyright (c) 2014 Alexander Logger. All rights reserved.
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
 using System.IO;
 using System.Security.Cryptography;
 
-namespace SharpMTProto.Extra
+namespace SharpMTProto.Services
 {
     public class HashServices : IHashServices
     {

@@ -10,7 +10,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace SharpMTProto.Extra
+namespace SharpMTProto.Utils
 {
     public sealed class SocketAwaitable : INotifyCompletion
     {

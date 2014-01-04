@@ -10,6 +10,7 @@ using System.Runtime.CompilerServices;
 using Catel;
 using Catel.Logging;
 using SharpMTProto.Annotations;
+using SharpMTProto.Services;
 using SharpMTProto.Transport;
 using SharpTL;
 
@@ -28,9 +29,9 @@ namespace SharpMTProto
         private readonly IEncryptionServices _encryptionServices;
         private readonly IHashServices _hashServices;
         private readonly IKeyChain _keyChain;
-        private readonly ITransportConfigProvider _transportConfigProvider;
         private readonly INonceGenerator _nonceGenerator;
         private readonly TLRig _tlRig;
+        private readonly ITransportConfigProvider _transportConfigProvider;
         private bool _isDisposed;
 
         public MTProtoClient([NotNull] IMTProtoConnectionFactory connectionFactory, [NotNull] TLRig tlRig, [NotNull] INonceGenerator nonceGenerator,

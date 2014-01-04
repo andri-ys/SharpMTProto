@@ -184,7 +184,9 @@ namespace SharpMTProto.Tests
 
             clientSocket.Send(dataPart1);
             await Task.Delay(100);
+            
             clientSocket.Send(dataPart2);
+            await Task.Delay(100);
 
             byte[] receivedData1 = await receivedMessages.DequeueAsync(CancellationTokenHelpers.Timeout(1000).Token);
             receivedData1.Should().BeEquivalentTo(payload1);
@@ -204,7 +206,7 @@ namespace SharpMTProto.Tests
         {
             TcpTransport transport = CreateTcpTransport();
 
-            Task<byte[]> receiveTask = transport.FirstAsync().Timeout(TimeSpan.FromMilliseconds(1000)).ToTask();
+            Task<byte[]> receiveTask = transport.FirstAsync().Timeout(TimeSpan.FromMilliseconds(3000)).ToTask();
 
             await transport.Connect();
             Socket clientSocket = _serverSocket.Accept();
@@ -212,12 +214,19 @@ namespace SharpMTProto.Tests
             byte[] payload = "010203040506070809".HexToBytes();
 
             var packet = new TcpTransportPacket(0x0ABBCCDD, payload);
-            byte[] part1 = packet.Data.Take(2).ToArray();
-            byte[] part2 = packet.Data.Skip(2).Take(packet.Length - 2).ToArray();
+            byte[] part1 = packet.Data.Take(1).ToArray();
+            byte[] part2 = packet.Data.Skip(part1.Length).Take(2).ToArray();
+            byte[] part3 = packet.Data.Skip(part1.Length + part2.Length).Take(3).ToArray();
+            byte[] part4 = packet.Data.Skip(part1.Length + part2.Length + part3.Length).ToArray();
             
             clientSocket.Send(part1);
-            await Task.Delay(10);
+            await Task.Delay(100);
             clientSocket.Send(part2);
+            await Task.Delay(200);
+            clientSocket.Send(part3);
+            await Task.Delay(50);
+            clientSocket.Send(part4);
+            await Task.Delay(50);
 
             byte[] receivedData = await receiveTask;
             receivedData.Should().BeEquivalentTo(payload);

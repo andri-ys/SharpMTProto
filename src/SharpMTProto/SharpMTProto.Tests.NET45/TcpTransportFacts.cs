@@ -186,8 +186,6 @@ namespace SharpMTProto.Tests
             await Task.Delay(100);
             clientSocket.Send(dataPart2);
 
-            await Task.Delay(1000);
-
             byte[] receivedData1 = await receivedMessages.DequeueAsync(CancellationTokenHelpers.Timeout(1000).Token);
             receivedData1.Should().BeEquivalentTo(payload1);
 
@@ -196,6 +194,33 @@ namespace SharpMTProto.Tests
 
             byte[] receivedData3 = await receivedMessages.DequeueAsync(CancellationTokenHelpers.Timeout(1000).Token);
             receivedData3.Should().BeEquivalentTo(payload3);
+
+            await transport.Disconnect();
+            clientSocket.Close();
+        }
+
+        [Test]
+        public async Task Should_receive_small_parts_less_than_4_bytes()
+        {
+            TcpTransport transport = CreateTcpTransport();
+
+            Task<byte[]> receiveTask = transport.FirstAsync().Timeout(TimeSpan.FromMilliseconds(1000)).ToTask();
+
+            await transport.Connect();
+            Socket clientSocket = _serverSocket.Accept();
+
+            byte[] payload = "010203040506070809".HexToBytes();
+
+            var packet = new TcpTransportPacket(0x0ABBCCDD, payload);
+            byte[] part1 = packet.Data.Take(2).ToArray();
+            byte[] part2 = packet.Data.Skip(2).Take(packet.Length - 2).ToArray();
+            
+            clientSocket.Send(part1);
+            await Task.Delay(10);
+            clientSocket.Send(part2);
+
+            byte[] receivedData = await receiveTask;
+            receivedData.Should().BeEquivalentTo(payload);
 
             await transport.Disconnect();
             clientSocket.Close();

@@ -23,6 +23,7 @@ namespace SharpMTProto.Transport
     /// </summary>
     public class TcpTransport : ITransport
     {
+        private const int PacketLengthBytesCount = 4;
         private static readonly ILog Log = LogManager.GetCurrentClassLogger();
         private readonly TimeSpan _connectTimeout;
         private readonly IPAddress _ipAddress;
@@ -30,6 +31,7 @@ namespace SharpMTProto.Transport
         private readonly byte[] _readerBuffer;
 
         private readonly AsyncLock _stateAsyncLock = new AsyncLock();
+        private readonly byte[] _tempLengthBuffer = new byte[PacketLengthBytesCount];
 
         private CancellationTokenSource _connectionCancellationTokenSource;
         private Subject<byte[]> _in = new Subject<byte[]>();
@@ -40,6 +42,7 @@ namespace SharpMTProto.Transport
         private Task _receiverTask;
         private Socket _socket;
         private volatile TransportState _state = TransportState.Disconnected;
+        private int _tempLengthBufferFill;
 
         public TcpTransport(TcpTransportConfig config)
         {
@@ -227,13 +230,20 @@ namespace SharpMTProto.Transport
                 while (bytesRead < buffer.Count)
                 {
                     int startIndex = buffer.Offset + bytesRead;
+                    int bytesToRead = buffer.Count - bytesRead;
+
                     if (_nextPacketBytesCountLeft == 0)
                     {
-                        if (buffer.Count < 4)
+                        int tempLengthBytesToRead = PacketLengthBytesCount - _tempLengthBufferFill;
+                        tempLengthBytesToRead = (bytesToRead < tempLengthBytesToRead) ? bytesToRead : tempLengthBytesToRead;
+                        Buffer.BlockCopy(buffer.Array, startIndex, _tempLengthBuffer, _tempLengthBufferFill, tempLengthBytesToRead);
+                        _tempLengthBufferFill += tempLengthBytesToRead;
+                        if (_tempLengthBufferFill < PacketLengthBytesCount)
                         {
-                            // TODO.
+                            break;
                         }
-                        _nextPacketBytesCountLeft = buffer.Array.ToInt32(startIndex);
+                        _tempLengthBufferFill = 0;
+                        _nextPacketBytesCountLeft = _tempLengthBuffer.ToInt32();
 
                         if (_nextPacketDataBuffer == null || _nextPacketDataBuffer.Length < _nextPacketBytesCountLeft || _nextPacketStreamer == null)
                         {
@@ -242,7 +252,6 @@ namespace SharpMTProto.Transport
                         }
                     }
 
-                    int bytesToRead = buffer.Count - bytesRead;
                     bytesToRead = bytesToRead > _nextPacketBytesCountLeft ? _nextPacketBytesCountLeft : bytesToRead;
 
                     _nextPacketStreamer.Write(buffer.Array, startIndex, bytesToRead);

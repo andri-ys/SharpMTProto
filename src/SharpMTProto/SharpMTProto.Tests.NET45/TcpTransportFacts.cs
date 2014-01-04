@@ -173,17 +173,17 @@ namespace SharpMTProto.Tests
             byte[] payload2 = Enumerable.Range(11, 40).Select(i => (byte) i).ToArray();
             var packet2 = new TcpTransportPacket(1, payload2);
 
-            byte[] payload3 = Enumerable.Range(51, 204).Select(i => (byte) i).ToArray();
+            byte[] payload3 = Enumerable.Range(51, 205).Select(i => (byte) i).ToArray();
             var packet3 = new TcpTransportPacket(2, payload3);
 
             byte[] allData = ArrayUtils.Combine(packet1.Data, packet2.Data, packet3.Data);
 
             byte[] dataPart1;
             byte[] dataPart2;
-            allData.SplitMidPoint(out dataPart1, out dataPart2);
+            allData.Split(50, out dataPart1, out dataPart2);
 
             clientSocket.Send(dataPart1);
-            await Task.Delay(10);
+            await Task.Delay(100);
             clientSocket.Send(dataPart2);
 
             await Task.Delay(1000);

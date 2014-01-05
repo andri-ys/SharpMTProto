@@ -237,13 +237,16 @@ namespace SharpMTProto.Transport
                         int tempLengthBytesToRead = PacketLengthBytesCount - _tempLengthBufferFill;
                         tempLengthBytesToRead = (bytesToRead < tempLengthBytesToRead) ? bytesToRead : tempLengthBytesToRead;
                         Buffer.BlockCopy(buffer.Array, startIndex, _tempLengthBuffer, _tempLengthBufferFill, tempLengthBytesToRead);
-                        startIndex += tempLengthBytesToRead;
-                        bytesToRead -= tempLengthBytesToRead;
+                        
                         _tempLengthBufferFill += tempLengthBytesToRead;
                         if (_tempLengthBufferFill < PacketLengthBytesCount)
                         {
                             break;
                         }
+
+                        startIndex += tempLengthBytesToRead;
+                        bytesToRead -= tempLengthBytesToRead;
+
                         _tempLengthBufferFill = 0;
                         _nextPacketBytesCountLeft = _tempLengthBuffer.ToInt32();
 

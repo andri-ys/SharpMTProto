@@ -41,9 +41,9 @@ namespace SharpMTProto.Tests
             var inTransport = new Subject<byte[]>();
             var mockTransport = new Mock<ITransport>();
             mockTransport.Setup(transport => transport.Subscribe(It.IsAny<IObserver<byte[]>>())).Callback<IObserver<byte[]>>(observer => inTransport.Subscribe(observer));
-            mockTransport.Setup(transport => transport.OnNext(TestData.ReqPQ)).Callback(() => inTransport.OnNext(TestData.ResPQ));
-            mockTransport.Setup(transport => transport.OnNext(TestData.ReqDHParams)).Callback(() => inTransport.OnNext(TestData.ServerDHParams));
-            mockTransport.Setup(transport => transport.OnNext(TestData.SetClientDHParams)).Callback(() => inTransport.OnNext(TestData.DhGenOk));
+            mockTransport.Setup(transport => transport.Send(TestData.ReqPQ)).Callback(() => inTransport.OnNext(TestData.ResPQ));
+            mockTransport.Setup(transport => transport.Send(TestData.ReqDHParams)).Callback(() => inTransport.OnNext(TestData.ServerDHParams));
+            mockTransport.Setup(transport => transport.Send(TestData.SetClientDHParams)).Callback(() => inTransport.OnNext(TestData.DhGenOk));
 
             var mockTransportFactory = new Mock<ITransportFactory>();
             mockTransportFactory.Setup(factory => factory.CreateTransport(It.IsAny<TransportConfig>())).Returns(mockTransport.Object);

@@ -38,7 +38,6 @@ namespace SharpMTProto.Transport
         private int _nextPacketBytesCountLeft;
         private byte[] _nextPacketDataBuffer;
         private TLStreamer _nextPacketStreamer;
-        private Subject<byte[]> _out = new Subject<byte[]>();
         private Task _receiverTask;
         private Socket _socket;
         private volatile TransportState _state = TransportState.Disconnected;
@@ -66,21 +65,6 @@ namespace SharpMTProto.Transport
             _socket = new Socket(_ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
         }
 
-        public void OnCompleted()
-        {
-            _out.OnCompleted();
-        }
-
-        public void OnError(Exception error)
-        {
-            _out.OnError(error);
-        }
-
-        public void OnNext(byte[] value)
-        {
-            _out.OnNext(value);
-        }
-
         public IDisposable Subscribe(IObserver<byte[]> observer)
         {
             return _in.Subscribe(observer);
@@ -96,12 +80,17 @@ namespace SharpMTProto.Transport
             get { return _state; }
         }
 
-        public async Task Connect()
+        public void Connect()
         {
-            await Connect(CancellationToken.None);
+            ConnectAsync().Wait();
         }
 
-        public async Task Connect(CancellationToken token)
+        public async Task ConnectAsync()
+        {
+            await ConnectAsync(CancellationToken.None);
+        }
+
+        public async Task ConnectAsync(CancellationToken token)
         {
             using (await _stateAsyncLock.LockAsync(token))
             {
@@ -111,7 +100,7 @@ namespace SharpMTProto.Transport
                 }
 
                 var args = new SocketAsyncEventArgs {RemoteEndPoint = new IPEndPoint(_ipAddress, _port)};
-
+                
                 var awaitable = new SocketAwaitable(args);
 
                 try
@@ -148,12 +137,17 @@ namespace SharpMTProto.Transport
             }
         }
 
-        public async Task Disconnect()
+        public void Disconnect()
         {
-            await Disconnect(CancellationToken.None);
+            DisconnectAsync().Wait();
         }
 
-        public async Task Disconnect(CancellationToken token)
+        public async Task DisconnectAsync()
+        {
+            await DisconnectAsync(CancellationToken.None);
+        }
+
+        public async Task DisconnectAsync(CancellationToken token)
         {
             using (await _stateAsyncLock.LockAsync(token))
             {
@@ -178,6 +172,30 @@ namespace SharpMTProto.Transport
 
                 _state = TransportState.Disconnected;
             }
+        }
+
+        public void Send(byte[] payload)
+        {
+            SendAsync(payload).Wait();
+        }
+
+        public Task SendAsync(byte[] payload)
+        {
+            return SendAsync(payload, CancellationToken.None);
+        }
+
+        public async Task SendAsync(byte[] payload, CancellationToken token)
+        {
+            await Task.Run(async () =>
+            {
+                var packet = new TcpTransportPacket(0, payload);
+
+                var args = new SocketAsyncEventArgs();
+                args.SetBuffer(packet.Data, 0, packet.Data.Length);
+
+                var awaitable = new SocketAwaitable(args);
+                await _socket.SendAsync(awaitable);
+            }, token).ConfigureAwait(false);
         }
 
         private async Task StartReceiver(CancellationToken token)
@@ -237,7 +255,7 @@ namespace SharpMTProto.Transport
                         int tempLengthBytesToRead = PacketLengthBytesCount - _tempLengthBufferFill;
                         tempLengthBytesToRead = (bytesToRead < tempLengthBytesToRead) ? bytesToRead : tempLengthBytesToRead;
                         Buffer.BlockCopy(buffer.Array, startIndex, _tempLengthBuffer, _tempLengthBufferFill, tempLengthBytesToRead);
-                        
+
                         _tempLengthBufferFill += tempLengthBytesToRead;
                         if (_tempLengthBufferFill < PacketLengthBytesCount)
                         {
@@ -255,7 +273,7 @@ namespace SharpMTProto.Transport
                             _nextPacketDataBuffer = new byte[_nextPacketBytesCountLeft];
                             _nextPacketStreamer = new TLStreamer(_nextPacketDataBuffer);
                         }
-                        
+
                         // Writing packet length.
                         _nextPacketStreamer.Write(_tempLengthBuffer);
                         _nextPacketBytesCountLeft -= PacketLengthBytesCount;
@@ -327,11 +345,6 @@ namespace SharpMTProto.Transport
             {
                 _nextPacketStreamer.Dispose();
                 _nextPacketStreamer = null;
-            }
-            if (_out != null)
-            {
-                _out.Dispose();
-                _out = null;
             }
             if (_in != null)
             {

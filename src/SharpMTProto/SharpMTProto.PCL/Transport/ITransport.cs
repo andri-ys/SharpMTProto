@@ -5,7 +5,6 @@
 // --------------------------------------------------------------------------------------------------------------------
 
 using System;
-using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -17,14 +16,18 @@ namespace SharpMTProto.Transport
         Connected = 1
     }
 
-    public interface ITransport : ISubject<byte[]>, IDisposable
+    public interface ITransport : IObservable<byte[]>, IDisposable
     {
         bool IsConnected { get; }
         TransportState State { get; }
-        Task Connect();
-        Task Connect(CancellationToken token);
-
-        Task Disconnect();
-        Task Disconnect(CancellationToken token);
+        void Connect();
+        Task ConnectAsync();
+        Task ConnectAsync(CancellationToken token);
+        void Disconnect();
+        Task DisconnectAsync();
+        Task DisconnectAsync(CancellationToken token);
+        void Send(byte[] payload);
+        Task SendAsync(byte[] payload);
+        Task SendAsync(byte[] payload, CancellationToken token);
     }
 }

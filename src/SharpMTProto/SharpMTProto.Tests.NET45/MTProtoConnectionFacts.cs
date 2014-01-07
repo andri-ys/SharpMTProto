@@ -63,7 +63,7 @@ namespace SharpMTProto.Tests
                 connection.SendUnencryptedMessage(message);
 
                 await Task.Delay(100); // Wait while internal sender processes the message.
-                mockTransport.Verify(connector => connector.OnNext(expectedMessageBytes), Times.Once);
+                mockTransport.Verify(connector => connector.Send(expectedMessageBytes), Times.Once);
 
                 // Testing receiving.
                 mockTransport.Verify(connector => connector.Subscribe(It.IsAny<IObserver<byte[]>>()), Times.AtLeastOnce());
@@ -91,7 +91,7 @@ namespace SharpMTProto.Tests
 
             var mockTransport = new Mock<ITransport>();
             mockTransport.Setup(connector => connector.Subscribe(It.IsAny<IObserver<byte[]>>())).Callback<IObserver<byte[]>>(observer => inConnector.Subscribe(observer));
-            mockTransport.Setup(connector => connector.OnNext(It.IsAny<byte[]>())).Callback(() => inConnector.OnNext(expectedResponseMessage.MessageBytes));
+            mockTransport.Setup(connector => connector.Send(It.IsAny<byte[]>())).Callback(() => inConnector.OnNext(expectedResponseMessage.MessageBytes));
 
             var mockTransportFactory = new Mock<ITransportFactory>();
             mockTransportFactory.Setup(manager => manager.CreateTransport(It.IsAny<TransportConfig>())).Returns(() => mockTransport.Object).Verifiable();
@@ -113,7 +113,7 @@ namespace SharpMTProto.Tests
 
                 await Task.Delay(100); // Wait while internal sender processes the message.
                 IMessage inMessageTask = await connection.OutMessagesHistory.FirstAsync().ToTask();
-                mockTransport.Verify(connector => connector.OnNext(inMessageTask.MessageBytes), Times.Once);
+                mockTransport.Verify(connector => connector.Send(inMessageTask.MessageBytes), Times.Once);
 
                 await connection.Disconnect();
             }
@@ -152,7 +152,7 @@ namespace SharpMTProto.Tests
             IServiceLocator serviceLocator = new ServiceLocator();
 
             var mockTransport = new Mock<ITransport>();
-            mockTransport.Setup(transport => transport.Connect(It.IsAny<CancellationToken>())).Returns(() => Task.Delay(1000));
+            mockTransport.Setup(transport => transport.ConnectAsync(It.IsAny<CancellationToken>())).Returns(() => Task.Delay(1000));
 
             var mockTransportFactory = new Mock<ITransportFactory>();
             mockTransportFactory.Setup(manager => manager.CreateTransport(It.IsAny<TransportConfig>())).Returns(() => mockTransport.Object).Verifiable();

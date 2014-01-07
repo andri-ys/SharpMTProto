@@ -64,7 +64,7 @@ namespace SharpMTProto.Tests
             transport.State.Should().Be(TransportState.Disconnected);
             transport.IsConnected.Should().BeFalse();
 
-            await transport.Connect();
+            await transport.ConnectAsync();
 
             Socket clientSocket = _serverSocket.Accept();
 
@@ -74,7 +74,7 @@ namespace SharpMTProto.Tests
             transport.State.Should().Be(TransportState.Connected);
             transport.IsConnected.Should().BeTrue();
 
-            await transport.Disconnect();
+            await transport.DisconnectAsync();
             transport.Dispose();
 
             clientSocket.IsConnected().Should().BeFalse();
@@ -90,7 +90,7 @@ namespace SharpMTProto.Tests
 
             transport.State.Should().Be(TransportState.Disconnected);
 
-            await transport.Connect();
+            await transport.ConnectAsync();
 
             Socket clientSocket = _serverSocket.Accept();
 
@@ -107,7 +107,7 @@ namespace SharpMTProto.Tests
 
             transport.State.Should().Be(TransportState.Disconnected);
 
-            await transport.Disconnect();
+            await transport.DisconnectAsync();
 
             transport.State.Should().Be(TransportState.Disconnected);
         }
@@ -119,7 +119,7 @@ namespace SharpMTProto.Tests
 
             Task<byte[]> receiveTask = transport.FirstAsync().Timeout(TimeSpan.FromMilliseconds(1000)).ToTask();
 
-            await transport.Connect();
+            await transport.ConnectAsync();
             Socket clientSocket = _serverSocket.Accept();
 
             byte[] payload = "010203040506070809".HexToBytes();
@@ -130,7 +130,7 @@ namespace SharpMTProto.Tests
             byte[] receivedData = await receiveTask;
             receivedData.Should().BeEquivalentTo(payload);
 
-            await transport.Disconnect();
+            await transport.DisconnectAsync();
             clientSocket.Close();
         }
 
@@ -141,7 +141,7 @@ namespace SharpMTProto.Tests
 
             Task<byte[]> receiveTask = transport.FirstAsync().Timeout(TimeSpan.FromMilliseconds(1000)).ToTask();
 
-            await transport.Connect();
+            await transport.ConnectAsync();
             Socket clientSocket = _serverSocket.Accept();
 
             byte[] payload = Enumerable.Range(0, 255).Select(i => (byte) i).ToArray();
@@ -152,7 +152,7 @@ namespace SharpMTProto.Tests
             byte[] receivedData = await receiveTask;
             receivedData.Should().BeEquivalentTo(payload);
 
-            await transport.Disconnect();
+            await transport.DisconnectAsync();
             clientSocket.Close();
         }
 
@@ -164,7 +164,7 @@ namespace SharpMTProto.Tests
             var receivedMessages = new AsyncProducerConsumerQueue<byte[]>();
             transport.Subscribe(receivedMessages.Enqueue);
 
-            await transport.Connect();
+            await transport.ConnectAsync();
             Socket clientSocket = _serverSocket.Accept();
 
             byte[] payload1 = Enumerable.Range(0, 10).Select(i => (byte) i).ToArray();
@@ -197,7 +197,7 @@ namespace SharpMTProto.Tests
             byte[] receivedData3 = await receivedMessages.DequeueAsync(CancellationTokenHelpers.Timeout(1000).Token);
             receivedData3.Should().BeEquivalentTo(payload3);
 
-            await transport.Disconnect();
+            await transport.DisconnectAsync();
             clientSocket.Close();
         }
 
@@ -208,7 +208,7 @@ namespace SharpMTProto.Tests
 
             Task<byte[]> receiveTask = transport.FirstAsync().Timeout(TimeSpan.FromMilliseconds(3000)).ToTask();
 
-            await transport.Connect();
+            await transport.ConnectAsync();
             Socket clientSocket = _serverSocket.Accept();
 
             byte[] payload = "010203040506070809".HexToBytes();
@@ -231,8 +231,30 @@ namespace SharpMTProto.Tests
             byte[] receivedData = await receiveTask;
             receivedData.Should().BeEquivalentTo(payload);
 
-            await transport.Disconnect();
+            await transport.DisconnectAsync();
             clientSocket.Close();
+        }
+
+        [Test]
+        public async Task Should_send()
+        {
+            TcpTransport transport = CreateTcpTransport();
+
+            await transport.ConnectAsync();
+            
+            Socket clientSocket = _serverSocket.Accept();
+
+            byte[] payload = "010203040506070809".HexToBytes();
+
+            await transport.SendAsync(payload);
+
+            var buffer = new byte[30];
+            var received = clientSocket.Receive(buffer);
+
+            var packet = new TcpTransportPacket(buffer, 0, received);
+            var receivedPayload = packet.GetPayloadCopy();
+
+            receivedPayload.ShouldAllBeEquivalentTo(payload);
         }
     }
 }

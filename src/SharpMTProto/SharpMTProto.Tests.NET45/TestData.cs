@@ -6,6 +6,7 @@
 
 using System;
 using BigMath.Utils;
+using SharpMTProto.Services;
 using SharpTL;
 
 namespace SharpMTProto.Tests

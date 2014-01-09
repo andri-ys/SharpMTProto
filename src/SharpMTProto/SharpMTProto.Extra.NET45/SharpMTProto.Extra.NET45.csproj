@@ -7,7 +7,7 @@
     <ProjectGuid>{40D0389A-10FA-4709-A8B6-7074D929F72B}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>SharpMTProto.Extra</RootNamespace>
+    <RootNamespace>SharpMTProto</RootNamespace>
     <AssemblyName>SharpMTProto.Extra</AssemblyName>
     <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
@@ -30,8 +30,37 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Catel.Core, Version=3.8.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Catel.Core.3.8.1\lib\net45\Catel.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="Nito.AsyncEx, Version=2.1.3.0, Culture=neutral, PublicKeyToken=09d695329ca273b7, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Nito.AsyncEx.2.1.3\lib\net45\Nito.AsyncEx.dll</HintPath>
+    </Reference>
+    <Reference Include="Nito.AsyncEx.Concurrent">
+      <HintPath>..\packages\Nito.AsyncEx.2.1.3\lib\net45\Nito.AsyncEx.Concurrent.dll</HintPath>
+    </Reference>
+    <Reference Include="Nito.AsyncEx.Enlightenment">
+      <HintPath>..\packages\Nito.AsyncEx.2.1.3\lib\net45\Nito.AsyncEx.Enlightenment.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Reactive.Core, Version=2.2.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Rx-Core.2.2.2\lib\net45\System.Reactive.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Reactive.Interfaces, Version=2.2.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Rx-Interfaces.2.2.2\lib\net45\System.Reactive.Interfaces.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Reactive.Linq, Version=2.2.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Rx-Linq.2.2.2\lib\net45\System.Reactive.Linq.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Reactive.PlatformServices">
+      <HintPath>..\packages\Rx-PlatformServices.2.2.2\lib\net45\System.Reactive.PlatformServices.dll</HintPath>
+    </Reference>
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -42,19 +71,30 @@
     <Compile Include="..\CommonAssemblyInfo.cs">
       <Link>Properties\CommonAssemblyInfo.cs</Link>
     </Compile>
-    <Compile Include="EncryptionServices.cs" />
-    <Compile Include="HashServices.cs" />
+    <Compile Include="Services\EncryptionServices.cs" />
+    <Compile Include="Services\HashServices.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Utils\SocketAwaitable.cs" />
+    <Compile Include="Utils\SocketExtensions.cs" />
+    <Compile Include="Transport\TcpTransport.cs" />
+    <Compile Include="Transport\TransportFactory.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\SharpTL\BigMath\src\BigMath\BigMath.PCL\BigMath.PCL.csproj">
       <Project>{e57078c6-c6a2-4a24-8983-840ace910680}</Project>
       <Name>BigMath.PCL</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\..\SharpTL\src\SharpTL\SharpTL.PCL\SharpTL.PCL.csproj">
+      <Project>{4172ee09-143e-425f-ab10-99db1d41a645}</Project>
+      <Name>SharpTL.PCL</Name>
+    </ProjectReference>
     <ProjectReference Include="..\SharpMTProto.PCL\SharpMTProto.PCL.csproj">
       <Project>{01cf01f4-7c2a-4a92-af21-ee35a90b36f8}</Project>
       <Name>SharpMTProto.PCL</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

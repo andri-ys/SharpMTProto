@@ -43,6 +43,16 @@
     <Reference Include="Moq">
       <HintPath>..\packages\Moq.4.2.1312.1416\lib\net40\Moq.dll</HintPath>
     </Reference>
+    <Reference Include="Nito.AsyncEx, Version=2.1.3.0, Culture=neutral, PublicKeyToken=09d695329ca273b7, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Nito.AsyncEx.2.1.3\lib\net45\Nito.AsyncEx.dll</HintPath>
+    </Reference>
+    <Reference Include="Nito.AsyncEx.Concurrent">
+      <HintPath>..\packages\Nito.AsyncEx.2.1.3\lib\net45\Nito.AsyncEx.Concurrent.dll</HintPath>
+    </Reference>
+    <Reference Include="Nito.AsyncEx.Enlightenment">
+      <HintPath>..\packages\Nito.AsyncEx.2.1.3\lib\net45\Nito.AsyncEx.Enlightenment.dll</HintPath>
+    </Reference>
     <Reference Include="nunit.framework">
       <HintPath>..\packages\NUnit.2.6.3\lib\nunit.framework.dll</HintPath>
     </Reference>
@@ -75,6 +85,7 @@
     <Compile Include="MTProtoClientFacts.cs" />
     <Compile Include="MTProtoConnectionFacts.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TcpTransportFacts.cs" />
     <Compile Include="TestData.cs" />
     <Compile Include="TestObjects.cs" />
     <Compile Include="UnencryptedMessageFacts.cs" />

@@ -10,6 +10,8 @@ using System.Runtime.CompilerServices;
 using Catel;
 using Catel.Logging;
 using SharpMTProto.Annotations;
+using SharpMTProto.Services;
+using SharpMTProto.Transport;
 using SharpTL;
 
 namespace SharpMTProto
@@ -29,10 +31,12 @@ namespace SharpMTProto
         private readonly IKeyChain _keyChain;
         private readonly INonceGenerator _nonceGenerator;
         private readonly TLRig _tlRig;
+        private readonly ITransportConfigProvider _transportConfigProvider;
         private bool _isDisposed;
 
         public MTProtoClient([NotNull] IMTProtoConnectionFactory connectionFactory, [NotNull] TLRig tlRig, [NotNull] INonceGenerator nonceGenerator,
-            [NotNull] IHashServices hashServices, [NotNull] IEncryptionServices encryptionServices, [NotNull] IKeyChain keyChain)
+            [NotNull] IHashServices hashServices, [NotNull] IEncryptionServices encryptionServices, [NotNull] IKeyChain keyChain,
+            [NotNull] ITransportConfigProvider transportConfigProvider)
         {
             Argument.IsNotNull(() => connectionFactory);
             Argument.IsNotNull(() => tlRig);
@@ -40,6 +44,7 @@ namespace SharpMTProto
             Argument.IsNotNull(() => hashServices);
             Argument.IsNotNull(() => encryptionServices);
             Argument.IsNotNull(() => keyChain);
+            Argument.IsNotNull(() => transportConfigProvider);
 
             _connectionFactory = connectionFactory;
             _tlRig = tlRig;
@@ -47,6 +52,7 @@ namespace SharpMTProto
             _hashServices = hashServices;
             _encryptionServices = encryptionServices;
             _keyChain = keyChain;
+            _transportConfigProvider = transportConfigProvider;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

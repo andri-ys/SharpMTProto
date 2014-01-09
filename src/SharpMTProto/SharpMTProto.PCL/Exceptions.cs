@@ -93,4 +93,19 @@ namespace SharpMTProto
             return sb.ToString();
         }
     }
+
+    public class TransportException : MTProtoException
+    {
+        public TransportException()
+        {
+        }
+
+        public TransportException(string message) : base(message)
+        {
+        }
+
+        public TransportException(string message, Exception innerException) : base(message, innerException)
+        {
+        }
+    }
 }

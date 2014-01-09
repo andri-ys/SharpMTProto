@@ -10,6 +10,7 @@ using System.Linq;
 using BigMath.Utils;
 using Catel;
 using SharpMTProto.Annotations;
+using SharpMTProto.Services;
 using SharpTL;
 
 namespace SharpMTProto

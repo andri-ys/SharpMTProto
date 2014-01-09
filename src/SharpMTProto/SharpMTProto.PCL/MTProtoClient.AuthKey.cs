@@ -13,6 +13,7 @@ using BigMath;
 using BigMath.Utils;
 using Catel.Logging;
 using MTProtoSchema;
+using SharpMTProto.Services;
 using SharpTL;
 
 namespace SharpMTProto
@@ -28,7 +29,7 @@ namespace SharpMTProto
         {
             ThrowIfDisposed();
 
-            IMTProtoConnection connection = _connectionFactory.Create();
+            IMTProtoConnection connection = _connectionFactory.Create(_transportConfigProvider.DefaultTransportConfig);
 
             try
             {

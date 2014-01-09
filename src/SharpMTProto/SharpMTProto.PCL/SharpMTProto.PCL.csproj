@@ -83,22 +83,26 @@
       <Link>Properties\CommonAssemblyInfo.cs</Link>
     </Compile>
     <Compile Include="Exceptions.cs" />
-    <Compile Include="ITransport.cs" />
-    <Compile Include="IEncryptionServices.cs" />
-    <Compile Include="IHashServices.cs" />
+    <Compile Include="Transport\ITransport.cs" />
+    <Compile Include="Services\IEncryptionServices.cs" />
+    <Compile Include="Services\IHashServices.cs" />
     <Compile Include="IMessage.cs" />
     <Compile Include="MTProtoClient.AuthKey.cs" />
     <Compile Include="MTProtoClient.Disposable.cs" />
-    <Compile Include="TransportFactory.cs" />
+    <Compile Include="Transport\ITransportConfigProvider.cs" />
+    <Compile Include="Transport\TcpTransportConfig.cs" />
+    <Compile Include="Transport\TcpTransportPacket.cs" />
+    <Compile Include="Transport\TransportConfig.cs" />
+    <Compile Include="Transport\ITransportFactory.cs" />
     <Compile Include="IMTProtoConnection.cs" />
     <Compile Include="MTProtoConnectionFactory.cs" />
     <Compile Include="PublicKey.cs" />
     <Compile Include="KeyChain.cs" />
-    <Compile Include="MessageIdGenerator.cs" />
+    <Compile Include="Services\MessageIdGenerator.cs" />
     <Compile Include="MTProtoClient.cs" />
     <Compile Include="MTProtoConnection.cs" />
     <Compile Include="MTProtoSchema.cs" />
-    <Compile Include="NonceGenerator.cs" />
+    <Compile Include="Services\NonceGenerator.cs" />
     <Compile Include="Properties\Annotations.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="UnencryptedMessage.cs" />

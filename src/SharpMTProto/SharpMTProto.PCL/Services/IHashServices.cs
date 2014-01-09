@@ -1,12 +1,12 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="IHashServices.cs">
-//   Copyright (c) 2013 Alexander Logger. All rights reserved.
+//   Copyright (c) 2014 Alexander Logger. All rights reserved.
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
 using System.IO;
 
-namespace SharpMTProto
+namespace SharpMTProto.Services
 {
     public interface IHashServices
     {

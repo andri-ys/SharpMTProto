@@ -17,6 +17,8 @@ using Catel;
 using Catel.Logging;
 using MTProtoSchema;
 using SharpMTProto.Annotations;
+using SharpMTProto.Services;
+using SharpMTProto.Transport;
 using SharpTL;
 using AsyncLock = Nito.AsyncEx.AsyncLock;
 
@@ -49,7 +51,8 @@ namespace SharpMTProto
         private ReplaySubject<IMessage> _outMessagesHistory = new ReplaySubject<IMessage>(100);
         #endregion
 
-        public MTProtoConnection([NotNull] ITransportFactory transportFactory, [NotNull] TLRig tlRig, [NotNull] IMessageIdGenerator messageIdGenerator)
+        public MTProtoConnection(TransportConfig transportConfig, [NotNull] ITransportFactory transportFactory, [NotNull] TLRig tlRig,
+            [NotNull] IMessageIdGenerator messageIdGenerator)
         {
             Argument.IsNotNull(() => transportFactory);
             Argument.IsNotNull(() => tlRig);
@@ -63,7 +66,7 @@ namespace SharpMTProto
             DefaultConnectTimeout = TimeSpan.FromSeconds(5);
 
             // Init transport.
-            _transport = _transportFactory.CreateTransport();
+            _transport = _transportFactory.CreateTransport(transportConfig);
 
             // History of messages in/out.
             _inMessages.ObserveOn(DefaultScheduler.Instance).Subscribe(_inMessagesHistory);
@@ -73,7 +76,7 @@ namespace SharpMTProto
             _transport.ObserveOn(DefaultScheduler.Instance).Do(bytes => LogMessageInOut(bytes, "IN")).Subscribe(ProcessIncomingMessageBytes);
             _outMessages.ObserveOn(DefaultScheduler.Instance)
                 .Do(message => LogMessageInOut(message.MessageBytes, "OUT"))
-                .Subscribe(message => _transport.OnNext(message.MessageBytes));
+                .Subscribe(message => _transport.Send(message.MessageBytes));
         }
 
         public TimeSpan DefaultRpcTimeout { get; set; }
@@ -162,7 +165,7 @@ namespace SharpMTProto
                         _state = MTProtoConnectionState.Connecting;
                         Log.Debug("Connecting...");
 
-                        await _transport.Connect(cancellationToken).ToObservable().Timeout(DefaultConnectTimeout);
+                        await _transport.ConnectAsync(cancellationToken).ToObservable().Timeout(DefaultConnectTimeout);
 
                         _connectionCts = new CancellationTokenSource();
                         _connectionCancellationToken = _connectionCts.Token;
@@ -221,7 +224,7 @@ namespace SharpMTProto
                         _connectionCts = null;
                     }
 
-                    await _transport.Disconnect();
+                    await _transport.DisconnectAsync();
                 }
             }).ConfigureAwait(false);
             // ReSharper restore MethodSupportsCancellation

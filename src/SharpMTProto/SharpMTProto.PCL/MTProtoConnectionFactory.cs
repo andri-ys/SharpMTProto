@@ -7,6 +7,7 @@
 using System;
 using Catel;
 using Catel.IoC;
+using SharpMTProto.Transport;
 
 namespace SharpMTProto
 {
@@ -14,23 +15,25 @@ namespace SharpMTProto
     {
         TimeSpan DefaultRpcTimeout { get; set; }
         TimeSpan DefaultConnectTimeout { get; set; }
-        IMTProtoConnection Create();
+        IMTProtoConnection Create(TransportConfig transportConfig);
     }
 
     public class MTProtoConnectionFactory : IMTProtoConnectionFactory
     {
         private readonly IServiceLocator _serviceLocator;
+        private readonly ITypeFactory _typeFactory;
 
         public MTProtoConnectionFactory(IServiceLocator serviceLocator)
         {
             Argument.IsNotNull(() => serviceLocator);
 
             _serviceLocator = serviceLocator;
+            _typeFactory = _serviceLocator.ResolveType<ITypeFactory>();
         }
 
-        public IMTProtoConnection Create()
+        public IMTProtoConnection Create(TransportConfig transportConfig)
         {
-            var connection = _serviceLocator.ResolveType<IMTProtoConnection>();
+            var connection = _typeFactory.CreateInstanceWithParametersAndAutoCompletion<MTProtoConnection>(transportConfig);
 
             connection.DefaultRpcTimeout = DefaultRpcTimeout;
             connection.DefaultConnectTimeout = DefaultConnectTimeout;

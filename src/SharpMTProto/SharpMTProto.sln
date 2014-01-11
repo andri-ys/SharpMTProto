@@ -1,0 +1,39 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.21005.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpMTProto.PCL", "SharpMTProto.PCL\SharpMTProto.PCL.csproj", "{01CF01F4-7C2A-4A92-AF21-EE35A90B36F8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpMTProto.Tests.NET45", "SharpMTProto.Tests.NET45\SharpMTProto.Tests.NET45.csproj", "{A6080AC8-861F-42A2-9EC5-FB9F5AF19ED3}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{9B5984F6-8763-4FE9-8242-8E00CA05BCF4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpMTProto.Extra.NET45", "SharpMTProto.Extra.NET45\SharpMTProto.Extra.NET45.csproj", "{40D0389A-10FA-4709-A8B6-7074D929F72B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{01CF01F4-7C2A-4A92-AF21-EE35A90B36F8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{01CF01F4-7C2A-4A92-AF21-EE35A90B36F8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{01CF01F4-7C2A-4A92-AF21-EE35A90B36F8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{01CF01F4-7C2A-4A92-AF21-EE35A90B36F8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A6080AC8-861F-42A2-9EC5-FB9F5AF19ED3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A6080AC8-861F-42A2-9EC5-FB9F5AF19ED3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A6080AC8-861F-42A2-9EC5-FB9F5AF19ED3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A6080AC8-861F-42A2-9EC5-FB9F5AF19ED3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{40D0389A-10FA-4709-A8B6-7074D929F72B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{40D0389A-10FA-4709-A8B6-7074D929F72B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{40D0389A-10FA-4709-A8B6-7074D929F72B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{40D0389A-10FA-4709-A8B6-7074D929F72B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{A6080AC8-861F-42A2-9EC5-FB9F5AF19ED3} = {9B5984F6-8763-4FE9-8242-8E00CA05BCF4}
+	EndGlobalSection
+EndGlobal

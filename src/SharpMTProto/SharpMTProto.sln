@@ -11,6 +11,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{9B5984F6
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpMTProto.Extra.NET45", "SharpMTProto.Extra.NET45\SharpMTProto.Extra.NET45.csproj", "{40D0389A-10FA-4709-A8B6-7074D929F72B}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NuGet", "NuGet", "{793CB452-A029-4465-8414-7B0A2D44CBF4}"
+	ProjectSection(SolutionItems) = preProject
+		SharpMTProto.nuspec = SharpMTProto.nuspec
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

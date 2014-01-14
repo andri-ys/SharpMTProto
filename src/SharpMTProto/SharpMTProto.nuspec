@@ -27,16 +27,16 @@
     </dependencies>
   </metadata>
   <files>
-    <file src="SharpMTProto.PCL\bin\Release\SharpMTProto.dll" target="lib\portable-net45+wp8+win8\" />
-    <file src="SharpMTProto.PCL\bin\Release\SharpMTProto.pdb" target="lib\portable-net45+wp8+win8\" />
-    <file src="SharpMTProto.PCL\bin\Release\SharpMTProto.XML" target="lib\portable-net45+wp8+win8\" />
-    <file src="SharpMTProto.PCL\bin\Release\SharpMTProto.dll" target="lib\net45\" />
-    <file src="SharpMTProto.PCL\bin\Release\SharpMTProto.pdb" target="lib\net45\" />
-    <file src="SharpMTProto.PCL\bin\Release\SharpMTProto.XML" target="lib\net45\" />
+    <file src="SharpMTProto.PCL\bin\$config$\SharpMTProto.dll" target="lib\portable-net45+wp8+win8\" />
+    <file src="SharpMTProto.PCL\bin\$config$\SharpMTProto.pdb" target="lib\portable-net45+wp8+win8\" />
+    <file src="SharpMTProto.PCL\bin\$config$\SharpMTProto.XML" target="lib\portable-net45+wp8+win8\" />
+    <file src="SharpMTProto.PCL\bin\$config$\SharpMTProto.dll" target="lib\net45\" />
+    <file src="SharpMTProto.PCL\bin\$config$\SharpMTProto.pdb" target="lib\net45\" />
+    <file src="SharpMTProto.PCL\bin\$config$\SharpMTProto.XML" target="lib\net45\" />
     <file src="SharpMTProto.PCL\**\*.cs" target="src\SharpMTProto.PCL\" exclude="**\obj\**" />
-    <file src="SharpMTProto.Extra.NET45\bin\Release\SharpMTProto.Extra.dll" target="lib\net45\" />
-    <file src="SharpMTProto.Extra.NET45\bin\Release\SharpMTProto.Extra.pdb" target="lib\net45\" />
-    <file src="SharpMTProto.Extra.NET45\bin\Release\SharpMTProto.Extra.XML" target="lib\net45\" />
+    <file src="SharpMTProto.Extra.NET45\bin\$config$\SharpMTProto.Extra.dll" target="lib\net45\" />
+    <file src="SharpMTProto.Extra.NET45\bin\$config$\SharpMTProto.Extra.pdb" target="lib\net45\" />
+    <file src="SharpMTProto.Extra.NET45\bin\$config$\SharpMTProto.Extra.XML" target="lib\net45\" />
     <file src="SharpMTProto.Extra.NET45\**\*.cs" target="src\SharpMTProto.Extra.NET45\" exclude="**\obj\**" />
   </files>
 </package>

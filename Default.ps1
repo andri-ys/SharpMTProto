@@ -1,6 +1,8 @@
-﻿Properties {
+﻿Properties 
+{
 	$config = 'Debug'
 	$build_dir = Split-Path $psake.build_script_file
+	$packages_dir = "$build_dir\packages\$config\"
 	$code_dir = "$build_dir\..\src"
     $solution_path = "$code_dir\SharpMTProto\SharpMTProto.sln"
     $assembly_info_path = "$code_dir\SharpMTProto\CommonAssemblyInfo.cs"
@@ -12,27 +14,30 @@ Task Default -depends RebuildAndPack
 
 Task RebuildAndPack -Depends Rebuild, Pack
 
-Task ValidateConfig {
-	Write-Host "$config"
-	Assert ( 'Debug','Release' -contains $config) -failureMessage "Invalid config: $config; Valid values are 'Debug' and 'Release'."
+Task ValidateConfig
+{
+	Assert ( 'Debug','Release' -contains $config) `
+		"Invalid config: $config; Valid values are 'Debug' and 'Release'.";
 }
 
-Task Build -depends ValidateConfig -description "Builds outdated artifacts." {	
+Task Build -depends ValidateConfig -description "Builds outdated artifacts."
+{	
 	Write-Host "Building SharpMTProto.sln" -ForegroundColor Green
 	Exec { msbuild "$code_dir\SharpMTProto\SharpMTProto.sln" /t:Build /p:Configuration=$config /v:quiet } 
 }
 
-Task Clean -depends ValidateConfig -description "Deletes all build artifacts." {
+Task Clean -depends ValidateConfig -description "Deletes all build artifacts."
+{
 	Write-Host "Cleaning SharpMTProto.sln" -ForegroundColor Green
 	Exec { msbuild "$solution_path" /t:Clean /p:Configuration=$config /v:quiet } 
 }
 
 Task Rebuild -depends Clean,Build -description "Rebuilds all artifacts from source."
 
-Task Pack -depends Build -description "Packs to a NuGet package." {
+Task Pack -depends Build -description "Packs to a NuGet package."
+{
     Write-Host "Creating NuGet packages" -ForegroundColor Green
-    $packages_dir = "$build_dir\packages\$config\"
-	if (Test-Path $packages_dir)
+    if (Test-Path $packages_dir)
 	{	
 		rd $packages_dir -rec -force | out-null
 	}

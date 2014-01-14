@@ -27,6 +27,9 @@ namespace SharpMTProto
         {
             Argument.IsNotNull(() => serviceLocator);
 
+            DefaultRpcTimeout = Defaults.RpcTimeout;
+            DefaultConnectTimeout = Defaults.ConnectTimeout;
+
             _serviceLocator = serviceLocator;
             _typeFactory = _serviceLocator.ResolveType<ITypeFactory>();
         }

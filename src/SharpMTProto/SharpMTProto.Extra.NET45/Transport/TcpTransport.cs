@@ -42,6 +42,7 @@ namespace SharpMTProto.Transport
         private Socket _socket;
         private volatile TransportState _state = TransportState.Disconnected;
         private int _tempLengthBufferFill;
+        private int _packetNumber;
 
         public TcpTransport(TcpTransportConfig config)
         {
@@ -105,6 +106,7 @@ namespace SharpMTProto.Transport
 
                 try
                 {
+                    _packetNumber = 0;
                     await _socket.ConnectAsync(awaitable);
                 }
                 catch (SocketException e)
@@ -188,7 +190,7 @@ namespace SharpMTProto.Transport
         {
             await Task.Run(async () =>
             {
-                var packet = new TcpTransportPacket(0, payload);
+                var packet = new TcpTransportPacket(_packetNumber++, payload);
 
                 var args = new SocketAsyncEventArgs();
                 args.SetBuffer(packet.Data, 0, packet.Data.Length);
@@ -231,12 +233,17 @@ namespace SharpMTProto.Transport
                         break;
                     }
 
-                    await ProcessReceivedData(new ArraySegment<byte>(_readerBuffer, 0, bytesRead));
+                    try
+                    {
+                        await ProcessReceivedData(new ArraySegment<byte>(_readerBuffer, 0, bytesRead));
+                    }
+                    catch (Exception e)
+                    {
+                        Log.Error(e, "Critical error while precessing received data.");
+                        break;
+                    }
                 }
-                using (await _stateAsyncLock.LockAsync(token))
-                {
-                    _state = TransportState.Disconnected;
-                }
+                await DisconnectAsync(CancellationToken.None);
             }, token).ConfigureAwait(false);
         }
 
@@ -292,7 +299,7 @@ namespace SharpMTProto.Transport
                         break;
                     }
 
-                    var packet = new TcpTransportPacket(_nextPacketDataBuffer);
+                    var packet = new TcpTransportPacket(_nextPacketDataBuffer, 0, (int) _nextPacketStreamer.Position);
 
                     await ProcessReceivedPacket(packet);
 

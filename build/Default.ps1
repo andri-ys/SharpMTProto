@@ -1,6 +1,6 @@
 ﻿Properties {
-	$build_dir = Split-Path $psake.build_script_file	
-	$packages_dir = "$build_dir\packages\"
+	$config = 'Debug'
+	$build_dir = Split-Path $psake.build_script_file
 	$code_dir = "$build_dir\..\src"
     $solution_path = "$code_dir\SharpMTProto\SharpMTProto.sln"
     $assembly_info_path = "$code_dir\SharpMTProto\CommonAssemblyInfo.cs"
@@ -8,25 +8,31 @@
 
 FormatTaskName (("-"*25) + "[{0}]" + ("-"*25))
 
-Task Default -depends BuildSharpMTProto
+Task Default -depends RebuildAndPack
 
-Task BuildSharpMTProto -Depends Clean, Build, Pack
+Task RebuildAndPack -Depends Rebuild, Pack
 
-Task Build -depends Clean {	
+Task ValidateConfig {
+	Write-Host "$config"
+	Assert ( 'Debug','Release' -contains $config) -failureMessage "Invalid config: $config; Valid values are 'Debug' and 'Release'."
+}
+
+Task Build -depends ValidateConfig -description "Builds outdated artifacts." {	
 	Write-Host "Building SharpMTProto.sln" -ForegroundColor Green
-	Exec { msbuild "$code_dir\SharpMTProto\SharpMTProto.sln" /t:Build /p:Configuration=Release /v:quiet } 
+	Exec { msbuild "$code_dir\SharpMTProto\SharpMTProto.sln" /t:Build /p:Configuration=$config /v:quiet } 
 }
 
-Task Clean {
-	Write-Host "Cleaning" -ForegroundColor Green
-	
+Task Clean -depends ValidateConfig -description "Deletes all build artifacts." {
 	Write-Host "Cleaning SharpMTProto.sln" -ForegroundColor Green
-	Exec { msbuild "$solution_path" /t:Clean /p:Configuration=Release /v:quiet } 
+	Exec { msbuild "$solution_path" /t:Clean /p:Configuration=$config /v:quiet } 
 }
 
-Task Pack -depends Build {
+Task Rebuild -depends Clean,Build -description "Rebuilds all artifacts from source."
+
+Task Pack -depends Build -description "Packs to a NuGet package." {
     Write-Host "Creating NuGet packages" -ForegroundColor Green
-    if (Test-Path $packages_dir)
+    $packages_dir = "$build_dir\packages\$config\"
+	if (Test-Path $packages_dir)
 	{	
 		rd $packages_dir -rec -force | out-null
 	}
@@ -36,5 +42,5 @@ Task Pack -depends Build {
     $regex = [regex] 'AssemblyVersion\("(?<Version>[0-9]+(?:\.(?:[0-9]+|\*)){1,3})"\)'
     $version = $regex.Match($assembly_info_content).Groups['Version'].Value
 
-    Exec { nuget pack "$code_dir\SharpMTProto\SharpMTProto.nuspec" -Symbols -Version "$version" -OutputDirectory "$packages_dir" }
+    Exec { nuget pack "$code_dir\SharpMTProto\SharpMTProto.nuspec" -Properties "config=$config" -Symbols -Version "$version" -OutputDirectory "$packages_dir" }
 }

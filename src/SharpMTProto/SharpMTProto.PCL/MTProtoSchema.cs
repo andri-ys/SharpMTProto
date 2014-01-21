@@ -7,7 +7,7 @@
 //     the code is regenerated.
 // </auto-generated>
 // ------------------------------------------------------------------------------
-
+#pragma warning disable 1591
 namespace MTProtoSchema
 {
     using SharpTL;
@@ -692,3 +692,4 @@ namespace MTProtoSchema
         Task HttpWaitAsync(HttpWaitArgs args);
     }
 }
+#pragma warning restore 1591

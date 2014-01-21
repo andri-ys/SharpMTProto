@@ -62,8 +62,8 @@ namespace SharpMTProto
             _tlRig = tlRig;
             _messageIdGenerator = messageIdGenerator;
 
-            DefaultRpcTimeout = TimeSpan.FromSeconds(5);
-            DefaultConnectTimeout = TimeSpan.FromSeconds(5);
+            DefaultRpcTimeout = Defaults.RpcTimeout;
+            DefaultConnectTimeout = Defaults.ConnectTimeout;
 
             // Init transport.
             _transport = _transportFactory.CreateTransport(transportConfig);
@@ -206,7 +206,6 @@ namespace SharpMTProto
 
         public async Task Disconnect()
         {
-            // ReSharper disable MethodSupportsCancellation
             await Task.Run(async () =>
             {
                 using (await _lock.LockAsync())
@@ -224,10 +223,9 @@ namespace SharpMTProto
                         _connectionCts = null;
                     }
 
-                    await _transport.DisconnectAsync();
+                    await _transport.DisconnectAsync(CancellationToken.None);
                 }
             }).ConfigureAwait(false);
-            // ReSharper restore MethodSupportsCancellation
         }
 
         private static void LogMessageInOut(byte[] messageBytes, string inOrOut)
@@ -241,12 +239,23 @@ namespace SharpMTProto
         /// <param name="bytes">Incoming bytes.</param>
         private async void ProcessIncomingMessageBytes(byte[] bytes)
         {
-            // TODO: process bytes as raw TCP stream, but not as each portion of bytes is a separate message.
             TLStreamer streamer = null;
             try
             {
                 Log.Debug("Processing incoming message.");
                 streamer = new TLStreamer(bytes);
+                if (bytes.Length == 4)
+                {
+                    int error = streamer.ReadInt();
+                    Log.Debug("Received error code: {0}.", error);
+                    return;
+                }
+                else if (bytes.Length < 20)
+                {
+                    throw new InvalidMessageException(
+                        string.Format("Invalid message length: {0} bytes. Expected to be at least 20 bytes for message or 4 bytes for error code.", bytes.Length));
+                }
+
                 ulong authKeyId = streamer.ReadULong();
                 Log.Debug(string.Format("Auth key ID [0x{0:X16}].", authKeyId));
                 if (authKeyId == 0)
@@ -263,7 +272,7 @@ namespace SharpMTProto
 
                     // Reading message data length.
                     int messageDataLength = streamer.ReadInt();
-                    if (messageDataLength == 0)
+                    if (messageDataLength <= 0)
                     {
                         throw new InvalidMessageException("Message data length must be greater than zero.");
                     }

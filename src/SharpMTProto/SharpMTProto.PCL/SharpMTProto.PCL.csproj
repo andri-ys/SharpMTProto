@@ -103,7 +103,7 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="BigMath">
-      <HintPath>..\packages\BigMath.0.3.2\lib\portable-net45+wp8+win8\BigMath.dll</HintPath>
+      <HintPath>..\packages\BigMath.0.4.1.0\lib\portable-net45+wp8+win8\BigMath.dll</HintPath>
     </Reference>
     <Reference Include="Catel.Core">
       <HintPath>..\packages\Catel.Core.3.8.1\lib\portable-net45+sl5+wp8+win8\Catel.Core.dll</HintPath>

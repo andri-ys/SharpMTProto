@@ -8,6 +8,8 @@ using System;
 using System.IO;
 using System.Security.Cryptography;
 using BigMath;
+using Raksha.Crypto.Engines;
+using Raksha.Crypto.Parameters;
 
 namespace SharpMTProto.Services
 {
@@ -15,12 +17,11 @@ namespace SharpMTProto.Services
     {
         public byte[] RSAEncrypt(byte[] data, PublicKey publicKey)
         {
-            var m = new BigInteger(publicKey.Modulus);
-            var e = new BigInteger(publicKey.Exponent);
-            var r = new BigInteger(data);
-            BigInteger s = BigInteger.ModPow(r, e, m);
-            byte[] temp = s.ToByteArray();
-            return temp;
+            var rsa = new RsaEngine();
+            var modulus = new BigInteger(publicKey.Modulus);
+            var exponent = new BigInteger(publicKey.Exponent);
+            rsa.Init(true, new RsaKeyParameters(false, modulus, exponent));
+            return rsa.ProcessBlock(data, 0, data.Length);
         }
 
         public byte[] Aes256IgeEncrypt(byte[] data, byte[] key, byte[] iv)
@@ -41,7 +42,7 @@ namespace SharpMTProto.Services
                 int blockSize = aes.BlockSize/8;
 
                 var xPrev = new byte[blockSize];
-                ;
+
                 Buffer.BlockCopy(iv2, 0, xPrev, 0, blockSize);
                 var yPrev = new byte[blockSize];
                 Buffer.BlockCopy(iv1, 0, yPrev, 0, blockSize);
@@ -117,13 +118,13 @@ namespace SharpMTProto.Services
 
         public DHOutParams DH(byte[] b, byte[] g, byte[] ga, byte[] p)
         {
-            var bi = new BigInteger(b);
-            var gi = new BigInteger(g);
-            var gai = new BigInteger(ga);
-            var pi = new BigInteger(p);
+            var bi = new BigInteger(1, b);
+            var gi = new BigInteger(1, g);
+            var gai = new BigInteger(1, ga);
+            var pi = new BigInteger(1, p);
 
-            byte[] gb = BigInteger.ModPow(gi, bi, pi).ToByteArray();
-            byte[] s = BigInteger.ModPow(gai, bi, pi).ToByteArray();
+            byte[] gb = gi.ModPow(bi, pi).ToByteArray();
+            byte[] s = gai.ModPow(bi, pi).ToByteArray();
 
             return new DHOutParams(gb, s);
         }

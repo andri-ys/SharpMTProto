@@ -208,7 +208,7 @@ namespace SharpMTProto
         {
             await Task.Run(async () =>
             {
-                using (await _lock.LockAsync())
+                using (await _lock.LockAsync(CancellationToken.None))
                 {
                     if (_state == MTProtoConnectionState.Disconnected)
                     {
@@ -225,7 +225,7 @@ namespace SharpMTProto
 
                     await _transport.DisconnectAsync(CancellationToken.None);
                 }
-            }).ConfigureAwait(false);
+            }, CancellationToken.None).ConfigureAwait(false);
         }
 
         private static void LogMessageInOut(byte[] messageBytes, string inOrOut)

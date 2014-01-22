@@ -230,7 +230,7 @@ namespace SharpMTProto
 
         private static void LogMessageInOut(byte[] messageBytes, string inOrOut)
         {
-            Log.Debug(string.Format("{0} ({1} bytes): {2}", inOrOut, messageBytes.Length, messageBytes.ToHexString(spaceEveryByte: true)));
+            Log.Debug(string.Format("{0} ({1} bytes): {2}", inOrOut, messageBytes.Length, messageBytes.ToHexString(spaceEveryByte: false)));
         }
 
         /// <summary>
@@ -257,17 +257,17 @@ namespace SharpMTProto
                 }
 
                 ulong authKeyId = streamer.ReadULong();
-                Log.Debug(string.Format("Auth key ID [0x{0:X16}].", authKeyId));
+                Log.Debug(string.Format("Auth key ID = {0:X16}.", authKeyId));
                 if (authKeyId == 0)
                 {
                     // Assume the message bytes has an unencrypted message.
-                    Log.Debug(string.Format("Assume this is unencrypted message."));
+                    Log.Debug(string.Format("Assume this is an unencrypted message."));
 
                     // Reading message ID.
                     ulong messageId = streamer.ReadULong();
                     if (!IsIncomingMessageIdValid(messageId))
                     {
-                        throw new InvalidMessageException(string.Format("Message ID: [0x{0:X16}] is invalid.", messageId));
+                        throw new InvalidMessageException(string.Format("Message ID = {0:X16} is invalid.", messageId));
                     }
 
                     // Reading message data length.
@@ -289,14 +289,14 @@ namespace SharpMTProto
                     // Notify in-messages subject.
                     var message = new UnencryptedMessage(messageId, messageData);
 
-                    Log.Debug(string.Format("Received unencrypted message. Message ID: [0x{0:X16}]. Message data length: {1} bytes.", messageId, messageDataLength));
+                    Log.Debug(string.Format("Received unencrypted message. Message ID = {0:X16}. Message data length: {1} bytes.", messageId, messageDataLength));
 
                     _inMessages.OnNext(message);
                 }
                 else
                 {
                     // Assume the stream has an encrypted message.
-                    Log.Debug(string.Format("Auth key ID [0x{0:X16}]. Assume this is encrypted message. (Encrypted messages NOT supported yet. Skipping.)", authKeyId));
+                    Log.Debug(string.Format("Auth key ID = {0:X16}. Assume this is encrypted message. (Encrypted messages NOT supported yet. Skipping.)", authKeyId));
                 }
             }
             catch (InvalidMessageException e)

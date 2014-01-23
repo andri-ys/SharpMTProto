@@ -39,9 +39,9 @@ namespace SharpMTProto
             using (var streamer = new TLStreamer(_messageBytes))
             {
                 // Writing header.
-                streamer.WriteLong(0); // Unencrypted message must always have zero auth key id.
-                streamer.WriteULong(_messageId);
-                streamer.WriteInt(_dataLength);
+                streamer.WriteInt64(0); // Unencrypted message must always have zero auth key id.
+                streamer.WriteUInt64(_messageId);
+                streamer.WriteInt32(_dataLength);
 
                 // Writing data.
                 streamer.Write(messageData, 0, _dataLength);

@@ -246,7 +246,7 @@ namespace SharpMTProto
                 streamer = new TLStreamer(bytes);
                 if (bytes.Length == 4)
                 {
-                    int error = streamer.ReadInt();
+                    int error = streamer.ReadInt32();
                     Log.Debug("Received error code: {0}.", error);
                     return;
                 }
@@ -256,7 +256,7 @@ namespace SharpMTProto
                         string.Format("Invalid message length: {0} bytes. Expected to be at least 20 bytes for message or 4 bytes for error code.", bytes.Length));
                 }
 
-                ulong authKeyId = streamer.ReadULong();
+                ulong authKeyId = streamer.ReadUInt64();
                 Log.Debug(string.Format("Auth key ID = {0:X16}.", authKeyId));
                 if (authKeyId == 0)
                 {
@@ -264,14 +264,14 @@ namespace SharpMTProto
                     Log.Debug(string.Format("Assume this is an unencrypted message."));
 
                     // Reading message ID.
-                    ulong messageId = streamer.ReadULong();
+                    ulong messageId = streamer.ReadUInt64();
                     if (!IsIncomingMessageIdValid(messageId))
                     {
                         throw new InvalidMessageException(string.Format("Message ID = {0:X16} is invalid.", messageId));
                     }
 
                     // Reading message data length.
-                    int messageDataLength = streamer.ReadInt();
+                    int messageDataLength = streamer.ReadInt32();
                     if (messageDataLength <= 0)
                     {
                         throw new InvalidMessageException("Message data length must be greater than zero.");

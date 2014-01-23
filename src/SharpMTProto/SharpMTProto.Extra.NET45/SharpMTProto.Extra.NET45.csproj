@@ -57,9 +57,8 @@
     <Reference Include="Raksha.Extra">
       <HintPath>..\packages\Raksha.0.1.1.0\lib\net45\Raksha.Extra.dll</HintPath>
     </Reference>
-    <Reference Include="SharpTL, Version=0.4.2.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\SharpTL.0.4.2\lib\portable-net45+wp8+win8\SharpTL.dll</HintPath>
+    <Reference Include="SharpTL">
+      <HintPath>..\packages\SharpTL.0.5\lib\portable-net45+wp8+win8\SharpTL.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />

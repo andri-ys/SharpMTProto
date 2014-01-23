@@ -244,7 +244,8 @@ namespace SharpMTProto
             int dataLength = data.Length;
             byte[] dataHash = ComputeSHA1(data);
             int length = HashLength + dataLength;
-            length += alignment - length%alignment;
+            int mod = length%alignment;
+            length += mod > 0 ? alignment - mod : 0;
             var dataWithHash = new byte[length];
             using (var streamer = new TLStreamer(dataWithHash))
             {

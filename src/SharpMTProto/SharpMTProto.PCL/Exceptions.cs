@@ -108,4 +108,19 @@ namespace SharpMTProto
         {
         }
     }
+
+    public class InvalidAuthKey : MTProtoException
+    {
+        public InvalidAuthKey()
+        {
+        }
+
+        public InvalidAuthKey(string message) : base(message)
+        {
+        }
+
+        public InvalidAuthKey(string message, Exception innerException) : base(message, innerException)
+        {
+        }
+    }
 }

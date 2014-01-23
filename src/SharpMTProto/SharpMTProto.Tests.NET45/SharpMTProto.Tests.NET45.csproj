@@ -90,6 +90,7 @@
     <Compile Include="..\CommonAssemblyInfo.cs">
       <Link>Properties\CommonAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="EncryptedMessageFacts.cs" />
     <Compile Include="EncryptionServicesFacts.cs" />
     <Compile Include="KeyChainFacts.cs" />
     <Compile Include="MTProtoClientFacts.cs" />

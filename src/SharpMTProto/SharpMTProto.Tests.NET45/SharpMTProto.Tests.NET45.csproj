@@ -99,7 +99,7 @@
     <Compile Include="TcpTransportFacts.cs" />
     <Compile Include="TestData.cs" />
     <Compile Include="TestObjects.cs" />
-    <Compile Include="UnencryptedMessageFacts.cs" />
+    <Compile Include="PlainMessageFacts.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

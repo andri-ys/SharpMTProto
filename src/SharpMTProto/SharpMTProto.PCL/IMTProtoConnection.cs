@@ -19,18 +19,18 @@ namespace SharpMTProto
         bool IsConnected { get; }
         TimeSpan DefaultRpcTimeout { get; set; }
         TimeSpan DefaultConnectTimeout { get; set; }
-        void SendUnencryptedMessage(UnencryptedMessage message);
-        void SendUnencryptedMessage(byte[] messageData);
+        void SendPlainMessage(PlainMessage message);
+        void SendPlainMessage(byte[] messageData);
 
         /// <summary>
-        ///     Sends unencrypted message and waits for a response.
+        ///     Sends plain (unencrypted) message and waits for a response.
         /// </summary>
         /// <typeparam name="TResponse">Type of the response which will be awaited.</typeparam>
         /// <param name="requestMessageData">Request message data.</param>
         /// <param name="timeout">Timeout.</param>
         /// <returns>Response.</returns>
         /// <exception cref="TimeoutException">When response is not captured within a specified timeout.</exception>
-        Task<TResponse> SendUnencryptedMessageAndWaitForResponse<TResponse>(object requestMessageData, TimeSpan timeout) where TResponse : class;
+        Task<TResponse> SendPlainMessage<TResponse>(object requestMessageData, TimeSpan timeout) where TResponse : class;
 
         Task Disconnect();
 

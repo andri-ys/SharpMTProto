@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="UnencryptedMessage.cs">
+// <copyright file="PlainMessage.cs">
 //   Copyright (c) 2013 Alexander Logger. All rights reserved.
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
@@ -12,9 +12,9 @@ using SharpTL;
 namespace SharpMTProto
 {
     /// <summary>
-    ///     Unencrypted message.
+    ///     Plain (unencrypted) message.
     /// </summary>
-    public class UnencryptedMessage : IMessage
+    public class PlainMessage : IMessage
     {
         /// <summary>
         ///     Message header length in bytes.
@@ -26,7 +26,7 @@ namespace SharpMTProto
         private readonly ulong _messageId;
         private readonly int _length;
 
-        public UnencryptedMessage(ulong messageId, [NotNull] byte[] messageData)
+        public PlainMessage(ulong messageId, [NotNull] byte[] messageData)
         {
             Argument.IsNotNull(() => messageData);
 
@@ -39,7 +39,7 @@ namespace SharpMTProto
             using (var streamer = new TLStreamer(_messageBytes))
             {
                 // Writing header.
-                streamer.WriteInt64(0); // Unencrypted message must always have zero auth key id.
+                streamer.WriteInt64(0); // Plain unencrypted message must always have zero auth key id.
                 streamer.WriteUInt64(_messageId);
                 streamer.WriteInt32(_dataLength);
 

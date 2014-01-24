@@ -102,12 +102,12 @@ namespace SharpMTProto
             get { return _outMessagesHistory; }
         }
 
-        public void SendUnencryptedMessage(byte[] messageData)
+        public void SendPlainMessage(byte[] messageData)
         {
-            SendUnencryptedMessage(new UnencryptedMessage(GetNextMessageId(), messageData));
+            SendPlainMessage(new PlainMessage(GetNextMessageId(), messageData));
         }
 
-        public void SendUnencryptedMessage(UnencryptedMessage message)
+        public void SendPlainMessage(PlainMessage message)
         {
             _outMessages.OnNext(message);
         }
@@ -120,17 +120,17 @@ namespace SharpMTProto
         /// <param name="timeout">Timeout.</param>
         /// <returns>Response.</returns>
         /// <exception cref="TimeoutException">When response is not captured within a specified timeout.</exception>
-        public async Task<TResponse> SendUnencryptedMessageAndWaitForResponse<TResponse>(object requestMessageData, TimeSpan timeout) where TResponse : class
+        public async Task<TResponse> SendPlainMessage<TResponse>(object requestMessageData, TimeSpan timeout) where TResponse : class
         {
             Task<TResponse> resultTask =
-                _inMessages.Where(message => message is UnencryptedMessage)
-                    .Select(m => _tlRig.Deserialize<TResponse>(((UnencryptedMessage) m).GetMessageData()))
+                _inMessages.Where(message => message is PlainMessage)
+                    .Select(m => _tlRig.Deserialize<TResponse>(((PlainMessage) m).GetMessageData()))
                     .Where(r => r != null)
                     .FirstAsync()
                     .Timeout(timeout)
                     .ToTask(_connectionCancellationToken);
 
-            SendUnencryptedMessage(_tlRig.Serialize(requestMessageData));
+            SendPlainMessage(_tlRig.Serialize(requestMessageData));
 
             return await resultTask;
         }
@@ -260,8 +260,8 @@ namespace SharpMTProto
                 Log.Debug(string.Format("Auth key ID = {0:X16}.", authKeyId));
                 if (authKeyId == 0)
                 {
-                    // Assume the message bytes has an unencrypted message.
-                    Log.Debug(string.Format("Assume this is an unencrypted message."));
+                    // Assume the message bytes has a plain (unencrypted) message.
+                    Log.Debug(string.Format("Assume this is a plain (unencrypted) message."));
 
                     // Reading message ID.
                     ulong messageId = streamer.ReadUInt64();
@@ -287,7 +287,7 @@ namespace SharpMTProto
                     }
 
                     // Notify in-messages subject.
-                    var message = new UnencryptedMessage(messageId, messageData);
+                    var message = new PlainMessage(messageId, messageData);
 
                     Log.Debug(string.Format("Received unencrypted message. Message ID = {0:X16}. Message data length: {1} bytes.", messageId, messageDataLength));
 
@@ -330,17 +330,17 @@ namespace SharpMTProto
         /// <returns>Response with pq.</returns>
         public async Task<IResPQ> ReqPqAsync(ReqPqArgs args)
         {
-            return await SendUnencryptedMessageAndWaitForResponse<IResPQ>(args, DefaultRpcTimeout);
+            return await SendPlainMessage<IResPQ>(args, DefaultRpcTimeout);
         }
 
         public async Task<IServerDHParams> ReqDHParamsAsync(ReqDHParamsArgs args)
         {
-            return await SendUnencryptedMessageAndWaitForResponse<IServerDHParams>(args, DefaultRpcTimeout);
+            return await SendPlainMessage<IServerDHParams>(args, DefaultRpcTimeout);
         }
 
         public async Task<ISetClientDHParamsAnswer> SetClientDHParamsAsync(SetClientDHParamsArgs args)
         {
-            return await SendUnencryptedMessageAndWaitForResponse<ISetClientDHParamsAnswer>(args, DefaultRpcTimeout);
+            return await SendPlainMessage<ISetClientDHParamsAnswer>(args, DefaultRpcTimeout);
         }
 
         public async Task<IRpcDropAnswer> RpcDropAnswerAsync(RpcDropAnswerArgs args)

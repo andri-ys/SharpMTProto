@@ -33,7 +33,7 @@ namespace SharpMTProto.Tests
         }
 
         [Test]
-        public async Task Should_send_and_receive_unencrypted_message()
+        public async Task Should_send_and_receive_plain_message()
         {
             IServiceLocator serviceLocator = new ServiceLocator();
 
@@ -59,8 +59,8 @@ namespace SharpMTProto.Tests
                 await connection.Connect();
 
                 // Testing sending.
-                var message = new UnencryptedMessage(0x0102030405060708UL, messageData);
-                connection.SendUnencryptedMessage(message);
+                var message = new PlainMessage(0x0102030405060708UL, messageData);
+                connection.SendPlainMessage(message);
 
                 await Task.Delay(100); // Wait while internal sender processes the message.
                 mockTransport.Verify(connector => connector.Send(expectedMessageBytes), Times.Once);
@@ -85,7 +85,7 @@ namespace SharpMTProto.Tests
 
             var request = new TestRequest {TestId = 9};
             var expectedResponse = new TestResponse {TestId = 9, TestText = "Number 1"};
-            var expectedResponseMessage = new UnencryptedMessage(0x0102030405060708, TLRig.Default.Serialize(expectedResponse));
+            var expectedResponseMessage = new PlainMessage(0x0102030405060708, TLRig.Default.Serialize(expectedResponse));
 
             var inConnector = new Subject<byte[]>();
 
@@ -107,7 +107,7 @@ namespace SharpMTProto.Tests
                 await connection.Connect();
 
                 // Testing sending.
-                TestResponse response = await connection.SendUnencryptedMessageAndWaitForResponse<TestResponse>(request, TimeSpan.FromSeconds(5));
+                TestResponse response = await connection.SendPlainMessage<TestResponse>(request, TimeSpan.FromSeconds(5));
                 response.Should().NotBeNull();
                 response.ShouldBeEquivalentTo(expectedResponse);
 
@@ -140,7 +140,7 @@ namespace SharpMTProto.Tests
                 using (var connection = serviceLocator.ResolveType<IMTProtoConnection>())
                 {
                     await connection.Connect();
-                    await connection.SendUnencryptedMessageAndWaitForResponse<TestResponse>(new TestRequest(), TimeSpan.FromSeconds(1));
+                    await connection.SendPlainMessage<TestResponse>(new TestRequest(), TimeSpan.FromSeconds(1));
                 }
             });
             testAction.ShouldThrow<TimeoutException>();

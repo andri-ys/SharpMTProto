@@ -99,7 +99,7 @@
     <Compile Include="Services\NonceGenerator.cs" />
     <Compile Include="Properties\Annotations.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="UnencryptedMessage.cs" />
+    <Compile Include="PlainMessage.cs" />
     <Compile Include="Utils\UnixTimeUtils.cs" />
   </ItemGroup>
   <ItemGroup>

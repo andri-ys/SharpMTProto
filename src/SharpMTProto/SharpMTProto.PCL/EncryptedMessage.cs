@@ -137,8 +137,7 @@ namespace SharpMTProto
                 streamer.WriteRandomData(paddingLength);
             }
 
-            byte[] innerDataSHA1 = hashServices.ComputeSHA1(innerDataWithPadding, 0, innerDataLength);
-            _msgKey = innerDataSHA1.ToInt128(innerDataSHA1.Length - 16, true);
+            _msgKey = ComputeMsgKey(new ArraySegment<byte>(innerDataWithPadding, 0, innerDataLength), hashServices);
 
             // Encrypting.
             byte[] aesKey, aesIV;
@@ -157,6 +156,12 @@ namespace SharpMTProto
                 // Writing encrypted data.
                 streamer.Write(encryptedData, 0, innerDataWithPaddingLength);
             }
+        }
+
+        private static Int128 ComputeMsgKey(ArraySegment<byte> bytes, [NotNull] IHashServices hashServices)
+        {
+            byte[] innerDataSHA1 = hashServices.ComputeSHA1(bytes);
+            return innerDataSHA1.ToInt128(innerDataSHA1.Length - 16, true);
         }
 
         /// <summary>
@@ -216,6 +221,17 @@ namespace SharpMTProto
                 _seqNumber = streamer.ReadUInt32();
                 _messageDataLength = streamer.ReadInt32();
                 _messageData = streamer.ReadBytes(_messageDataLength);
+            }
+
+            int innerDataLength = InnerHeaderLength + _messageDataLength;
+
+            // When an encrypted message is received, it must be checked that
+            // msg_key is in fact equal to the 128 lower-order bits
+            // of the SHA1 hash of the previously encrypted portion.
+            var msgKey = ComputeMsgKey(new ArraySegment<byte>(innerDataWithPadding, 0, innerDataLength), hashServices);
+            if (_msgKey != msgKey)
+            {
+                throw new InvalidMessageException(string.Format("Expected message key to be {0}, but actual is {1}.", _msgKey, msgKey));
             }
         }
 

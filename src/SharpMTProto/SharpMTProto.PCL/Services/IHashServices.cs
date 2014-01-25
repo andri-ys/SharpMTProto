@@ -4,6 +4,7 @@
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
+using System;
 using System.IO;
 
 namespace SharpMTProto.Services
@@ -12,6 +13,7 @@ namespace SharpMTProto.Services
     {
         byte[] ComputeSHA1(byte[] data);
         byte[] ComputeSHA1(byte[] data, int offset, int count);
+        byte[] ComputeSHA1(ArraySegment<byte> data);
         byte[] ComputeSHA1(Stream stream);
     }
 }

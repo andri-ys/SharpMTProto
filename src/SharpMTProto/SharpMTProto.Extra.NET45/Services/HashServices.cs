@@ -4,6 +4,7 @@
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
+using System;
 using System.IO;
 using System.Security.Cryptography;
 
@@ -22,6 +23,11 @@ namespace SharpMTProto.Services
             {
                 return sha.ComputeHash(data, offset, count);
             }
+        }
+
+        public byte[] ComputeSHA1(ArraySegment<byte> data)
+        {
+            return ComputeSHA1(data.Array, data.Offset, data.Count);
         }
 
         public byte[] ComputeSHA1(Stream stream)

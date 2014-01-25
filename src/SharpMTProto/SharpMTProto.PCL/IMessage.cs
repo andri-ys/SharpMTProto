@@ -10,5 +10,10 @@ namespace SharpMTProto
     {
         int Length { get; }
         byte[] MessageBytes { get; }
+
+        /// <summary>
+        ///     Plain inner message data.
+        /// </summary>
+        byte[] MessageData { get; }
     }
 }

@@ -13,6 +13,7 @@ using Catel.IoC;
 using Catel.Logging;
 using FluentAssertions;
 using Moq;
+using MTProtoSchema;
 using NUnit.Framework;
 using SharpMTProto.Services;
 using SharpMTProto.Transport;
@@ -32,8 +33,8 @@ namespace SharpMTProto.Tests
         [Test]
         public async Task Should_create_auth_key()
         {
-            TimeSpan defaultRpcTimeout = TimeSpan.FromSeconds(1);
-            TimeSpan defaultConnectTimeout = TimeSpan.FromSeconds(1);
+            TimeSpan defaultRpcTimeout = TimeSpan.FromSeconds(5);
+            TimeSpan defaultConnectTimeout = TimeSpan.FromSeconds(5);
 
             var serviceLocator = new ServiceLocator();
             var typeFactory = serviceLocator.ResolveType<ITypeFactory>();
@@ -67,6 +68,8 @@ namespace SharpMTProto.Tests
             serviceLocator.RegisterInstance(mockEncryptionServices.Object);
             serviceLocator.RegisterType<IKeyChain, KeyChain>();
             serviceLocator.RegisterType<IMTProtoConnectionFactory, MTProtoConnectionFactory>();
+
+            TLRig.Default.PrepareSerializersForAllTLObjectsInAssembly(typeof(ITLMethods).Assembly);
 
             var keyChain = serviceLocator.ResolveType<IKeyChain>();
             keyChain.AddKeys(TestData.TestPublicKeys);

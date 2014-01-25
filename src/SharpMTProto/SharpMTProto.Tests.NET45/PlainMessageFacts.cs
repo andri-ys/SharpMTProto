@@ -26,7 +26,7 @@ namespace SharpMTProto.Tests
             message.Should().NotBeNull();
             message.Length.Should().Be(messageBytes.Length);
             message.DataLength.Should().Be(messageData.Length);
-            message.GetMessageData().Should().BeEquivalentTo(messageData);
+            message.MessageData.Should().BeEquivalentTo(messageData);
             message.MessageBytes.Should().BeEquivalentTo(messageBytes);
         }
     }

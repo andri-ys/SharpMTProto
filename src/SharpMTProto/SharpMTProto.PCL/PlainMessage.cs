@@ -4,7 +4,6 @@
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
-using System;
 using Catel;
 using SharpMTProto.Annotations;
 using SharpTL;
@@ -21,10 +20,11 @@ namespace SharpMTProto
         /// </summary>
         public const int HeaderLength = 20;
 
-        private readonly byte[] _messageBytes;
         private readonly int _dataLength;
-        private readonly ulong _messageId;
         private readonly int _length;
+        private readonly byte[] _messageBytes;
+        private readonly byte[] _messageData;
+        private readonly ulong _messageId;
 
         public PlainMessage(ulong messageId, [NotNull] byte[] messageData)
         {
@@ -32,6 +32,7 @@ namespace SharpMTProto
 
             int dataLength = messageData.Length;
             _messageId = messageId;
+            _messageData = messageData;
             _dataLength = dataLength;
             _length = HeaderLength + dataLength;
             _messageBytes = new byte[_length];
@@ -53,14 +54,14 @@ namespace SharpMTProto
             get { return _messageId; }
         }
 
-        public int Length
-        {
-            get { return _length; }
-        }
-
         public int DataLength
         {
             get { return _dataLength; }
+        }
+
+        public int Length
+        {
+            get { return _length; }
         }
 
         public byte[] MessageBytes
@@ -68,11 +69,9 @@ namespace SharpMTProto
             get { return _messageBytes; }
         }
 
-        public byte[] GetMessageData()
+        public byte[] MessageData
         {
-            var messageData = new byte[DataLength];
-            Buffer.BlockCopy(_messageBytes, HeaderLength, messageData, 0, messageData.Length);
-            return messageData;
+            get { return _messageData; }
         }
     }
 }

@@ -1,25 +1,70 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="MTProtoClient.AuthKey.cs">
-//   Copyright (c) 2013 Alexander Logger. All rights reserved.
+// <copyright file="AuthKeyNegotiator.cs">
+//   Copyright (c) 2014 Alexander Logger. All rights reserved.
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
 using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using BigMath;
 using BigMath.Utils;
+using Catel;
 using Catel.Logging;
 using MTProtoSchema;
+using SharpMTProto.Annotations;
 using SharpMTProto.Services;
+using SharpMTProto.Transport;
 using SharpTL;
 
 namespace SharpMTProto
 {
-    public partial class MTProtoClient
+    /// <summary>
+    ///     Auth key negotiator.
+    /// </summary>
+    public class AuthKeyNegotiator
     {
+        private const int HashLength = 20;
+        private const int AuthRetryCount = 5;
+        private static readonly ILog Log = LogManager.GetCurrentClassLogger();
+        private readonly IMTProtoConnectionFactory _connectionFactory;
+        private readonly IEncryptionServices _encryptionServices;
+        private readonly IHashServices _hashServices;
+        private readonly IKeyChain _keyChain;
+        private readonly INonceGenerator _nonceGenerator;
+        private readonly TLRig _tlRig;
+        private readonly ITransportConfigProvider _transportConfigProvider;
+
+        public AuthKeyNegotiator([NotNull] IMTProtoConnectionFactory connectionFactory, [NotNull] TLRig tlRig, [NotNull] INonceGenerator nonceGenerator,
+            [NotNull] IHashServices hashServices, [NotNull] IEncryptionServices encryptionServices, [NotNull] IKeyChain keyChain,
+            [NotNull] ITransportConfigProvider transportConfigProvider)
+        {
+            Argument.IsNotNull(() => connectionFactory);
+            Argument.IsNotNull(() => tlRig);
+            Argument.IsNotNull(() => nonceGenerator);
+            Argument.IsNotNull(() => hashServices);
+            Argument.IsNotNull(() => encryptionServices);
+            Argument.IsNotNull(() => keyChain);
+            Argument.IsNotNull(() => transportConfigProvider);
+
+            _connectionFactory = connectionFactory;
+            _tlRig = tlRig;
+            _nonceGenerator = nonceGenerator;
+            _hashServices = hashServices;
+            _encryptionServices = encryptionServices;
+            _keyChain = keyChain;
+            _transportConfigProvider = transportConfigProvider;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private byte[] ComputeSHA1(byte[] data)
+        {
+            return _hashServices.ComputeSHA1(data);
+        }
+
         public async Task<byte[]> CreateAuthKey()
         {
             return await CreateAuthKey(CancellationToken.None);
@@ -27,15 +72,13 @@ namespace SharpMTProto
 
         public async Task<byte[]> CreateAuthKey(CancellationToken cancellationToken)
         {
-            ThrowIfDisposed();
-
             IMTProtoConnection connection = _connectionFactory.Create(_transportConfigProvider.DefaultTransportConfig);
 
             try
             {
                 Int128 nonce = _nonceGenerator.GetNonce(16).ToInt128();
 
-                Log.Debug(string.Format("Creating auth key (nonce [0x{0:X16}])...", nonce));
+                Log.Debug(string.Format("Creating auth key (nonce = {0:X16})...", nonce));
 
                 // Connecting.
                 Log.Debug("Connecting...");
@@ -54,8 +97,8 @@ namespace SharpMTProto
                 }
                 CheckNonce(nonce, resPQ.Nonce);
 
-                Log.Debug(string.Format("Response PQ: [0x{0}], server nonce: [0x{1:X16}], {2}.", resPQ.Pq.ToHexString(), resPQ.ServerNonce,
-                    resPQ.ServerPublicKeyFingerprints.Aggregate("public keys fingerprints:", (text, fingerprint) => text + " [0x" + fingerprint.ToString("X8") + "]")));
+                Log.Debug(string.Format("Response PQ = {0}, server nonce = {1:X16}, {2}.", resPQ.Pq.ToHexString(), resPQ.ServerNonce,
+                    resPQ.ServerPublicKeyFingerprints.Aggregate("public keys fingerprints:", (text, fingerprint) => text + " " + fingerprint.ToString("X8"))));
 
                 Int128 serverNonce = resPQ.ServerNonce;
 
@@ -64,7 +107,7 @@ namespace SharpMTProto
                 ReqDHParamsArgs reqDhParamsArgs = CreateReqDhParamsArgs(resPQ, out pqInnerData);
                 Int256 newNonce = pqInnerData.NewNonce;
 
-                Log.Debug(string.Format("Requesting DH params with the new nonce: [0x{0:X32}]...", newNonce));
+                Log.Debug(string.Format("Requesting DH params with the new nonce: {0:X32}...", newNonce));
 
                 IServerDHParams serverDHParams = await connection.ReqDHParamsAsync(reqDhParamsArgs);
                 if (serverDHParams == null)
@@ -154,8 +197,8 @@ namespace SharpMTProto
                         GB = dhOutParams.GB
                     };
 
-                    Log.Debug(string.Format("DH data: B:[0x{0}], G:[0x{1}], GB:[0x{2}], P:[0x{3}], S:[0x{4}].", b.ToHexString(), g.ToHexString(),
-                        dhOutParams.GB.ToHexString(), p.ToHexString(), authKey.ToHexString()));
+                    Log.Debug(string.Format("DH data: B={0}, G={1}, GB={2}, P={3}, S={4}.", b.ToHexString(), g.ToHexString(), dhOutParams.GB.ToHexString(),
+                        p.ToHexString(), authKey.ToHexString()));
 
                     // byte[] authKeyHash = ComputeSHA1(authKey).Skip(HashLength - 8).Take(8).ToArray(); // Not used in client.
                     authKeyAuxHash = ComputeSHA1(authKey).Take(8).ToArray();
@@ -182,7 +225,7 @@ namespace SharpMTProto
                         Int128 newNonceHash1 = ComputeNewNonceHash(newNonce, 1, authKeyAuxHash);
                         CheckNonce(newNonceHash1, dhGenOk.NewNonceHash1);
 
-                        Log.Debug(string.Format("Negotiated auth key: [0x{0}].", authKey.ToHexString()));
+                        Log.Debug(string.Format("Negotiated auth key: {0}.", authKey.ToHexString()));
 
                         return authKey;
                     }
@@ -244,7 +287,8 @@ namespace SharpMTProto
             int dataLength = data.Length;
             byte[] dataHash = ComputeSHA1(data);
             int length = HashLength + dataLength;
-            length += alignment - length%alignment;
+            int mod = length%alignment;
+            length += mod > 0 ? alignment - mod : 0;
             var dataWithHash = new byte[length];
             using (var streamer = new TLStreamer(dataWithHash))
             {
@@ -259,7 +303,7 @@ namespace SharpMTProto
         {
             if (actualNonce != expectedNonce)
             {
-                throw new InvalidResponseException(string.Format("Expected nonce [0x{0:X16}] differs from the actual nonce [0x{1:X16}].", expectedNonce, actualNonce));
+                throw new InvalidResponseException(string.Format("Expected nonce {0:X16} differs from the actual nonce {1:X16}.", expectedNonce, actualNonce));
             }
         }
 

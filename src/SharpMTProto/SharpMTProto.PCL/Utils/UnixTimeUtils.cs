@@ -12,19 +12,19 @@ namespace SharpMTProto.Utils
     {
         private static readonly DateTime UnixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
-        public static ulong GetCurrentUnixTimestampMillis()
+        public static ulong GetCurrentUnixTimestampMilliseconds()
         {
-            return DateTime.UtcNow.ToCurrentUnixTimestampMillis();
+            return DateTime.UtcNow.ToUnixTimestampMilliseconds();
         }
 
-        public static ulong ToCurrentUnixTimestampMillis(this DateTime utcDateTime)
+        public static ulong ToUnixTimestampMilliseconds(this DateTime utcDateTime)
         {
             return (ulong) (utcDateTime - UnixEpoch).TotalMilliseconds;
         }
 
-        public static DateTime DateTimeFromUnixTimestampMillis(ulong millis)
+        public static DateTime DateTimeFromUnixTimestampMilliseconds(ulong milliseconds)
         {
-            return UnixEpoch.AddMilliseconds(millis);
+            return UnixEpoch.AddMilliseconds(milliseconds);
         }
 
         public static ulong GetCurrentUnixTimestampSeconds()

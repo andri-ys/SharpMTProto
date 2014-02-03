@@ -30,40 +30,47 @@ namespace SharpMTProto
     public class MTProtoConnection : IMTProtoConnection
     {
         private static readonly ILog Log = LogManager.GetCurrentClassLogger();
-
+        private static readonly Random Rnd = new Random();
+        private readonly IEncryptionServices _encryptionServices;
+        private readonly IHashServices _hashServices;
         private readonly AsyncLock _lock = new AsyncLock();
         private readonly IMessageIdGenerator _messageIdGenerator;
+        private readonly Subject<object> _responses = new Subject<object>();
+        private readonly ulong _sessionId;
         private readonly TLRig _tlRig;
         private readonly ITransport _transport;
         private readonly ITransportFactory _transportFactory;
+        private byte[] _authKey;
         private CancellationToken _connectionCancellationToken;
-
         private CancellationTokenSource _connectionCts;
-
-        private bool _isDisposed;
-
-        private volatile MTProtoConnectionState _state = MTProtoConnectionState.Disconnected;
-
-        #region Message hubs.
         private Subject<IMessage> _inMessages = new Subject<IMessage>();
         private ReplaySubject<IMessage> _inMessagesHistory = new ReplaySubject<IMessage>(100);
+        private bool _isDisposed;
+        private uint _messageSeqNumber;
         private Subject<IMessage> _outMessages = new Subject<IMessage>();
         private ReplaySubject<IMessage> _outMessagesHistory = new ReplaySubject<IMessage>(100);
-        #endregion
+        private ulong _salt;
+        private volatile MTProtoConnectionState _state = MTProtoConnectionState.Disconnected;
 
         public MTProtoConnection(TransportConfig transportConfig, [NotNull] ITransportFactory transportFactory, [NotNull] TLRig tlRig,
-            [NotNull] IMessageIdGenerator messageIdGenerator)
+            [NotNull] IMessageIdGenerator messageIdGenerator, [NotNull] IHashServices hashServices, [NotNull] IEncryptionServices encryptionServices)
         {
             Argument.IsNotNull(() => transportFactory);
             Argument.IsNotNull(() => tlRig);
             Argument.IsNotNull(() => messageIdGenerator);
+            Argument.IsNotNull(() => hashServices);
+            Argument.IsNotNull(() => encryptionServices);
 
             _transportFactory = transportFactory;
             _tlRig = tlRig;
             _messageIdGenerator = messageIdGenerator;
+            _hashServices = hashServices;
+            _encryptionServices = encryptionServices;
 
             DefaultRpcTimeout = Defaults.RpcTimeout;
             DefaultConnectTimeout = Defaults.ConnectTimeout;
+
+            _sessionId = GetNextSessionId();
 
             // Init transport.
             _transport = _transportFactory.CreateTransport(transportConfig);
@@ -77,6 +84,8 @@ namespace SharpMTProto
             _outMessages.ObserveOn(DefaultScheduler.Instance)
                 .Do(message => LogMessageInOut(message.MessageBytes, "OUT"))
                 .Subscribe(message => _transport.Send(message.MessageBytes));
+
+            _inMessages.ObserveOn(DefaultScheduler.Instance).Subscribe(ProcessIncomingMessage);
         }
 
         public TimeSpan DefaultRpcTimeout { get; set; }
@@ -102,37 +111,93 @@ namespace SharpMTProto
             get { return _outMessagesHistory; }
         }
 
-        public void SendUnencryptedMessage(byte[] messageData)
+        public void SendMessage(IMessage message)
         {
-            SendUnencryptedMessage(new UnencryptedMessage(GetNextMessageId(), messageData));
-        }
+            ThrowIfDiconnected();
 
-        public void SendUnencryptedMessage(UnencryptedMessage message)
-        {
             _outMessages.OnNext(message);
         }
 
+        public async Task<TResponse> SendMessage<TResponse>(object requestMessageDataObject, TimeSpan timeout, MessageType messageType) where TResponse : class
+        {
+            ThrowIfDiconnected();
+
+            byte[] messageData = _tlRig.Serialize(requestMessageDataObject);
+
+            Task<TResponse> resultTask = _responses.Select(o => o as TResponse).Where(r => r != null).FirstAsync().Timeout(timeout).ToTask(_connectionCancellationToken);
+
+            switch (messageType)
+            {
+                case MessageType.Plain:
+                    SendPlainMessage(messageData);
+                    break;
+                case MessageType.Encrypted:
+                    SendEncryptedMessage(messageData);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException("messageType");
+            }
+
+            return await resultTask;
+        }
+
+        public void SendPlainMessage(byte[] messageData)
+        {
+            ThrowIfDiconnected();
+
+            SendMessage(new PlainMessage(GetNextMessageId(), messageData));
+        }
+
         /// <summary>
-        ///     Sends unencrypted message and waits for a response.
+        ///     Sends plain (unencrypted) message and waits for a response.
         /// </summary>
         /// <typeparam name="TResponse">Type of the response which will be awaited.</typeparam>
-        /// <param name="requestMessageData">Request message data.</param>
+        /// <param name="requestMessageDataObject">Request message data.</param>
         /// <param name="timeout">Timeout.</param>
         /// <returns>Response.</returns>
         /// <exception cref="TimeoutException">When response is not captured within a specified timeout.</exception>
-        public async Task<TResponse> SendUnencryptedMessageAndWaitForResponse<TResponse>(object requestMessageData, TimeSpan timeout) where TResponse : class
+        public async Task<TResponse> SendPlainMessage<TResponse>(object requestMessageDataObject, TimeSpan timeout) where TResponse : class
         {
-            Task<TResponse> resultTask =
-                _inMessages.Where(message => message is UnencryptedMessage)
-                    .Select(m => _tlRig.Deserialize<TResponse>(((UnencryptedMessage) m).GetMessageData()))
-                    .Where(r => r != null)
-                    .FirstAsync()
-                    .Timeout(timeout)
-                    .ToTask(_connectionCancellationToken);
+            return await SendMessage<TResponse>(requestMessageDataObject, timeout, MessageType.Plain);
+        }
 
-            SendUnencryptedMessage(_tlRig.Serialize(requestMessageData));
+        /// <summary>
+        ///     Sends encrypted message.
+        /// </summary>
+        /// <param name="messageData">Message inner data.</param>
+        /// <param name="isContentRelated">
+        ///     Indicates wether message is content-related message requiring an explicit
+        ///     acknowledgment.
+        /// </param>
+        public void SendEncryptedMessage(byte[] messageData, bool isContentRelated = true)
+        {
+            ThrowIfDiconnected();
 
-            return await resultTask;
+            if (!IsEncryptionSupported)
+            {
+                throw new InvalidOperationException("Encryption is not supported. Setup encryption first by calling SetupEncryption() method.");
+            }
+
+            var message = new EncryptedMessage(_authKey, _salt, _sessionId, GetNextMessageId(), GetNextSeqNo(isContentRelated), messageData, Sender.Client, _hashServices,
+                _encryptionServices);
+
+            SendMessage(message);
+        }
+
+        public async Task<TResponse> SendEncryptedMessage<TResponse>(object requestMessageDataObject, TimeSpan timeout) where TResponse : class
+        {
+            return await SendMessage<TResponse>(requestMessageDataObject, timeout, MessageType.Encrypted);
+        }
+
+        public void SetupEncryption(byte[] authKey, ulong salt)
+        {
+            _authKey = authKey;
+            _salt = salt;
+        }
+
+        public bool IsEncryptionSupported
+        {
+            get { return _authKey != null; }
         }
 
         /// <summary>
@@ -208,7 +273,7 @@ namespace SharpMTProto
         {
             await Task.Run(async () =>
             {
-                using (await _lock.LockAsync())
+                using (await _lock.LockAsync(CancellationToken.None))
                 {
                     if (_state == MTProtoConnectionState.Disconnected)
                     {
@@ -225,53 +290,94 @@ namespace SharpMTProto
 
                     await _transport.DisconnectAsync(CancellationToken.None);
                 }
-            }).ConfigureAwait(false);
+            }, CancellationToken.None).ConfigureAwait(false);
+        }
+
+        private void ProcessIncomingMessage(IMessage message)
+        {
+            try
+            {
+                object response = _tlRig.Deserialize(message.MessageData);
+                if (response != null)
+                {
+                    _responses.OnNext(response);
+                }
+            }
+            catch (Exception e)
+            {
+                Log.Debug(e, "Error on message deserialization.");
+            }
+        }
+
+        private void ThrowIfDiconnected()
+        {
+            if (!IsConnected)
+            {
+                throw new InvalidOperationException("Not allowed when disconnected.");
+            }
+        }
+
+        private uint GetNextSeqNo(bool isContentRelated)
+        {
+            uint x = (isContentRelated ? 1u : 0);
+            uint result = _messageSeqNumber*2 + x;
+            _messageSeqNumber += x;
+            return result;
+        }
+
+        private static ulong GetNextSessionId()
+        {
+            return ((ulong) Rnd.Next()) << 32 + Rnd.Next();
+        }
+
+        private ulong GetNextMessageId()
+        {
+            return _messageIdGenerator.GetNextMessageId();
         }
 
         private static void LogMessageInOut(byte[] messageBytes, string inOrOut)
         {
-            Log.Debug(string.Format("{0} ({1} bytes): {2}", inOrOut, messageBytes.Length, messageBytes.ToHexString(spaceEveryByte: true)));
+            Log.Debug(string.Format("{0} ({1} bytes): {2}", inOrOut, messageBytes.Length, messageBytes.ToHexString()));
         }
 
         /// <summary>
         ///     Processes incoming message bytes.
         /// </summary>
-        /// <param name="bytes">Incoming bytes.</param>
-        private async void ProcessIncomingMessageBytes(byte[] bytes)
+        /// <param name="messageBytes">Incoming bytes.</param>
+        private async void ProcessIncomingMessageBytes(byte[] messageBytes)
         {
             TLStreamer streamer = null;
             try
             {
                 Log.Debug("Processing incoming message.");
-                streamer = new TLStreamer(bytes);
-                if (bytes.Length == 4)
+                streamer = new TLStreamer(messageBytes);
+                if (messageBytes.Length == 4)
                 {
-                    int error = streamer.ReadInt();
+                    int error = streamer.ReadInt32();
                     Log.Debug("Received error code: {0}.", error);
                     return;
                 }
-                else if (bytes.Length < 20)
+                else if (messageBytes.Length < 20)
                 {
                     throw new InvalidMessageException(
-                        string.Format("Invalid message length: {0} bytes. Expected to be at least 20 bytes for message or 4 bytes for error code.", bytes.Length));
+                        string.Format("Invalid message length: {0} bytes. Expected to be at least 20 bytes for message or 4 bytes for error code.", messageBytes.Length));
                 }
 
-                ulong authKeyId = streamer.ReadULong();
-                Log.Debug(string.Format("Auth key ID [0x{0:X16}].", authKeyId));
+                ulong authKeyId = streamer.ReadUInt64();
                 if (authKeyId == 0)
                 {
-                    // Assume the message bytes has an unencrypted message.
-                    Log.Debug(string.Format("Assume this is unencrypted message."));
+                    // Assume the message bytes has a plain (unencrypted) message.
+                    Log.Debug(string.Format("Auth key ID = 0x{0:X16}. Assume this is a plain (unencrypted) message.", authKeyId));
 
                     // Reading message ID.
-                    ulong messageId = streamer.ReadULong();
+                    ulong messageId = streamer.ReadUInt64();
                     if (!IsIncomingMessageIdValid(messageId))
                     {
-                        throw new InvalidMessageException(string.Format("Message ID: [0x{0:X16}] is invalid.", messageId));
+                        throw new InvalidMessageException(string.Format("Message ID = 0x{0:X16} is invalid.", messageId));
                     }
 
                     // Reading message data length.
-                    int messageDataLength = streamer.ReadInt();
+                    int messageDataLength = streamer.ReadInt32();
                     if (messageDataLength <= 0)
                     {
                         throw new InvalidMessageException("Message data length must be greater than zero.");
@@ -287,19 +393,30 @@ namespace SharpMTProto
                     }
 
                     // Notify in-messages subject.
-                    var message = new UnencryptedMessage(messageId, messageData);
+                    var message = new PlainMessage(messageId, messageData);
 
-                    Log.Debug(string.Format("Received unencrypted message. Message ID: [0x{0:X16}]. Message data length: {1} bytes.", messageId, messageDataLength));
+                    Log.Debug(string.Format("Received plain message. Message ID = 0x{0:X16}. Message data length: {1} bytes.", messageId, messageDataLength));
 
                     _inMessages.OnNext(message);
                 }
                 else
                 {
                     // Assume the stream has an encrypted message.
-                    Log.Debug(string.Format("Auth key ID [0x{0:X16}]. Assume this is encrypted message. (Encrypted messages NOT supported yet. Skipping.)", authKeyId));
+                    Log.Debug(string.Format("Auth key ID = 0x{0:X16}. Assume this is encrypted message.", authKeyId));
+                    if (!IsEncryptionSupported)
+                    {
+                        Log.Debug("Encryption is not supported by this connection.");
+                        return;
+                    }
+
+                    var message = new EncryptedMessage(_authKey, messageBytes, Sender.Server, _hashServices, _encryptionServices);
+
+                    Log.Debug(string.Format("Received encrypted message. Message ID = 0x{0:X16}. Message data length: {1} bytes.", message.MessageId, message.MessageDataLength));
+
+                    _inMessages.OnNext(message);
                 }
             }
-            catch (InvalidMessageException e)
+            catch (Exception e)
             {
                 Log.Error(e, "Failed to receive a message.");
             }
@@ -318,11 +435,6 @@ namespace SharpMTProto
             return true;
         }
 
-        private ulong GetNextMessageId()
-        {
-            return _messageIdGenerator.GetNextMessageId();
-        }
-
         #region TL methods
         /// <summary>
         ///     Request pq.
@@ -330,17 +442,17 @@ namespace SharpMTProto
         /// <returns>Response with pq.</returns>
         public async Task<IResPQ> ReqPqAsync(ReqPqArgs args)
         {
-            return await SendUnencryptedMessageAndWaitForResponse<IResPQ>(args, DefaultRpcTimeout);
+            return await SendPlainMessage<IResPQ>(args, DefaultRpcTimeout);
         }
 
         public async Task<IServerDHParams> ReqDHParamsAsync(ReqDHParamsArgs args)
         {
-            return await SendUnencryptedMessageAndWaitForResponse<IServerDHParams>(args, DefaultRpcTimeout);
+            return await SendPlainMessage<IServerDHParams>(args, DefaultRpcTimeout);
         }
 
         public async Task<ISetClientDHParamsAnswer> SetClientDHParamsAsync(SetClientDHParamsArgs args)
         {
-            return await SendUnencryptedMessageAndWaitForResponse<ISetClientDHParamsAnswer>(args, DefaultRpcTimeout);
+            return await SendPlainMessage<ISetClientDHParamsAnswer>(args, DefaultRpcTimeout);
         }
 
         public async Task<IRpcDropAnswer> RpcDropAnswerAsync(RpcDropAnswerArgs args)
@@ -406,5 +518,11 @@ namespace SharpMTProto
             }
         }
         #endregion
+    }
+
+    public enum MessageType
+    {
+        Plain,
+        Encrypted
     }
 }

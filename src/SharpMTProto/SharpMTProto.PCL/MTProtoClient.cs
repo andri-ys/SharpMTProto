@@ -5,14 +5,8 @@
 // --------------------------------------------------------------------------------------------------------------------
 
 using System;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using Catel;
 using Catel.Logging;
 using SharpMTProto.Annotations;
-using SharpMTProto.Services;
-using SharpMTProto.Transport;
-using SharpTL;
 
 namespace SharpMTProto
 {
@@ -20,47 +14,37 @@ namespace SharpMTProto
     ///     MTProto client.
     /// </summary>
     [UsedImplicitly]
-    public partial class MTProtoClient : IDisposable
+    public class MTProtoClient : IDisposable
     {
-        private const int HashLength = 20;
-        private const int AuthRetryCount = 5;
         private static readonly ILog Log = LogManager.GetCurrentClassLogger();
-        private readonly IMTProtoConnectionFactory _connectionFactory;
-        private readonly IEncryptionServices _encryptionServices;
-        private readonly IHashServices _hashServices;
-        private readonly IKeyChain _keyChain;
-        private readonly INonceGenerator _nonceGenerator;
-        private readonly TLRig _tlRig;
-        private readonly ITransportConfigProvider _transportConfigProvider;
         private bool _isDisposed;
 
-        public MTProtoClient([NotNull] IMTProtoConnectionFactory connectionFactory, [NotNull] TLRig tlRig, [NotNull] INonceGenerator nonceGenerator,
-            [NotNull] IHashServices hashServices, [NotNull] IEncryptionServices encryptionServices, [NotNull] IKeyChain keyChain,
-            [NotNull] ITransportConfigProvider transportConfigProvider)
+        #region Disposable
+        public void Dispose()
         {
-            Argument.IsNotNull(() => connectionFactory);
-            Argument.IsNotNull(() => tlRig);
-            Argument.IsNotNull(() => nonceGenerator);
-            Argument.IsNotNull(() => hashServices);
-            Argument.IsNotNull(() => encryptionServices);
-            Argument.IsNotNull(() => keyChain);
-            Argument.IsNotNull(() => transportConfigProvider);
-
-            _connectionFactory = connectionFactory;
-            _tlRig = tlRig;
-            _nonceGenerator = nonceGenerator;
-            _hashServices = hashServices;
-            _encryptionServices = encryptionServices;
-            _keyChain = keyChain;
-            _transportConfigProvider = transportConfigProvider;
+            Dispose(true);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private byte[] ComputeSHA1(byte[] data)
+        protected void ThrowIfDisposed()
         {
-            byte[] r = _hashServices.ComputeSHA1(data);
-            Debug.Assert(r.Length == HashLength, "SHA1 must always be 20 bytes length.");
-            return r;
+            if (_isDisposed)
+            {
+                throw new ObjectDisposedException(GetType().FullName, "Can not access disposed client.");
+            }
         }
+
+        protected virtual void Dispose(bool isDisposing)
+        {
+            if (_isDisposed)
+            {
+                return;
+            }
+            _isDisposed = true;
+
+            if (isDisposing)
+            {
+            }
+        }
+        #endregion
     }
 }

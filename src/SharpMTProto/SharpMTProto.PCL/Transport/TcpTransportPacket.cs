@@ -67,11 +67,11 @@ namespace SharpMTProto.Transport
             _data = new byte[length];
             using (var streamer = new TLStreamer(_data))
             {
-                streamer.WriteInt(length);
-                streamer.WriteInt(Number);
+                streamer.WriteInt32(length);
+                streamer.WriteInt32(Number);
                 streamer.Write(payload);
                 Crc32 = ComputeCrc32();
-                streamer.WriteUInt(Crc32);
+                streamer.WriteUInt32(Crc32);
             }
         }
 
@@ -116,14 +116,14 @@ namespace SharpMTProto.Transport
             int length = _data.Length;
             using (var streamer = new TLStreamer(_data))
             {
-                int expectedLength = streamer.ReadInt();
+                int expectedLength = streamer.ReadInt32();
                 if (length != expectedLength)
                 {
                     throw new TransportException(string.Format("Invalid packet length. Expected: {0}, actual: {1}.", expectedLength, length));
                 }
-                Number = streamer.ReadInt();
+                Number = streamer.ReadInt32();
                 streamer.Seek(-4, SeekOrigin.End);
-                Crc32 = streamer.ReadUInt();
+                Crc32 = streamer.ReadUInt32();
             }
 
             uint actualCrc32 = ComputeCrc32();

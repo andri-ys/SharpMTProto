@@ -19,19 +19,35 @@ namespace SharpMTProto
         bool IsConnected { get; }
         TimeSpan DefaultRpcTimeout { get; set; }
         TimeSpan DefaultConnectTimeout { get; set; }
-        void SendUnencryptedMessage(UnencryptedMessage message);
-        void SendUnencryptedMessage(byte[] messageData);
-
+        void SendPlainMessage(byte[] messageData);
+        void SendMessage(IMessage message);
+        void SendEncryptedMessage(byte[] messageData, bool isContentRelated = true);
+        void SetupEncryption(byte[] authKey, ulong salt);
+        bool IsEncryptionSupported { get; }
+        
         /// <summary>
-        ///     Sends unencrypted message and waits for a response.
+        ///     Sends plain (unencrypted) message and waits for a response.
         /// </summary>
         /// <typeparam name="TResponse">Type of the response which will be awaited.</typeparam>
-        /// <param name="requestMessageData">Request message data.</param>
+        /// <param name="requestMessageDataObject">Request message data.</param>
         /// <param name="timeout">Timeout.</param>
         /// <returns>Response.</returns>
         /// <exception cref="TimeoutException">When response is not captured within a specified timeout.</exception>
-        Task<TResponse> SendUnencryptedMessageAndWaitForResponse<TResponse>(object requestMessageData, TimeSpan timeout) where TResponse : class;
-
+        Task<TResponse> SendPlainMessage<TResponse>(object requestMessageDataObject, TimeSpan timeout) where TResponse : class;
+        
+        /// <summary>
+        ///     Sends encrypted message and waits for a response.
+        /// </summary>
+        /// <typeparam name="TResponse">Type of the response which will be awaited.</typeparam>
+        /// <param name="requestMessageDataObject">Request message data.</param>
+        /// <param name="timeout">Timeout.</param>
+        /// <returns>Response.</returns>
+        /// <exception cref="TimeoutException">When response is not captured within a specified timeout.</exception>
+        Task<TResponse> SendEncryptedMessage<TResponse>(object requestMessageDataObject, TimeSpan timeout) where TResponse : class;
+        
+        /// <summary>
+        /// Diconnect.
+        /// </summary>
         Task Disconnect();
 
         /// <summary>
@@ -43,6 +59,8 @@ namespace SharpMTProto
         ///     Connect.
         /// </summary>
         Task<MTProtoConnectResult> Connect(CancellationToken cancellationToken);
+
+        Task<TResponse> SendMessage<TResponse>(object requestMessageDataObject, TimeSpan timeout, MessageType messageType) where TResponse : class;
     }
 
     public enum MTProtoConnectionState

@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="UnencryptedMessageFacts.cs">
+// <copyright file="PlainMessageFacts.cs">
 //   Copyright (c) 2013 Alexander Logger. All rights reserved.
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
@@ -12,7 +12,7 @@ using NUnit.Framework;
 namespace SharpMTProto.Tests
 {
     [TestFixture]
-    public class UnencryptedMessageFacts
+    public class PlainMessageFacts
     {
         [Test]
         public void Should_create()
@@ -21,12 +21,12 @@ namespace SharpMTProto.Tests
             byte[] messageData = Enumerable.Range(0, 255).Select(i => (byte) i).ToArray();
             byte[] messageBytes = ("0x0000000000000000" + "0807060504030201" + "000000FF").HexToBytes().Concat(messageData).ToArray();
 
-            var message = new UnencryptedMessage(messageId, messageData);
+            var message = new PlainMessage(messageId, messageData);
 
             message.Should().NotBeNull();
             message.Length.Should().Be(messageBytes.Length);
             message.DataLength.Should().Be(messageData.Length);
-            message.GetMessageData().Should().BeEquivalentTo(messageData);
+            message.MessageData.Should().BeEquivalentTo(messageData);
             message.MessageBytes.Should().BeEquivalentTo(messageBytes);
         }
     }

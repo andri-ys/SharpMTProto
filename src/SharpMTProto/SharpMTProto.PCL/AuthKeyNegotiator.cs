@@ -1,25 +1,70 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="MTProtoClient.AuthKey.cs">
-//   Copyright (c) 2013 Alexander Logger. All rights reserved.
+// <copyright file="AuthKeyNegotiator.cs">
+//   Copyright (c) 2014 Alexander Logger. All rights reserved.
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
 using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using BigMath;
 using BigMath.Utils;
+using Catel;
 using Catel.Logging;
 using MTProtoSchema;
+using SharpMTProto.Annotations;
 using SharpMTProto.Services;
+using SharpMTProto.Transport;
 using SharpTL;
 
 namespace SharpMTProto
 {
-    public partial class MTProtoClient
+    /// <summary>
+    ///     Auth key negotiator.
+    /// </summary>
+    public class AuthKeyNegotiator
     {
+        private const int HashLength = 20;
+        private const int AuthRetryCount = 5;
+        private static readonly ILog Log = LogManager.GetCurrentClassLogger();
+        private readonly IMTProtoConnectionFactory _connectionFactory;
+        private readonly IEncryptionServices _encryptionServices;
+        private readonly IHashServices _hashServices;
+        private readonly IKeyChain _keyChain;
+        private readonly INonceGenerator _nonceGenerator;
+        private readonly TLRig _tlRig;
+        private readonly ITransportConfigProvider _transportConfigProvider;
+
+        public AuthKeyNegotiator([NotNull] IMTProtoConnectionFactory connectionFactory, [NotNull] TLRig tlRig, [NotNull] INonceGenerator nonceGenerator,
+            [NotNull] IHashServices hashServices, [NotNull] IEncryptionServices encryptionServices, [NotNull] IKeyChain keyChain,
+            [NotNull] ITransportConfigProvider transportConfigProvider)
+        {
+            Argument.IsNotNull(() => connectionFactory);
+            Argument.IsNotNull(() => tlRig);
+            Argument.IsNotNull(() => nonceGenerator);
+            Argument.IsNotNull(() => hashServices);
+            Argument.IsNotNull(() => encryptionServices);
+            Argument.IsNotNull(() => keyChain);
+            Argument.IsNotNull(() => transportConfigProvider);
+
+            _connectionFactory = connectionFactory;
+            _tlRig = tlRig;
+            _nonceGenerator = nonceGenerator;
+            _hashServices = hashServices;
+            _encryptionServices = encryptionServices;
+            _keyChain = keyChain;
+            _transportConfigProvider = transportConfigProvider;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private byte[] ComputeSHA1(byte[] data)
+        {
+            return _hashServices.ComputeSHA1(data);
+        }
+
         public async Task<byte[]> CreateAuthKey()
         {
             return await CreateAuthKey(CancellationToken.None);
@@ -27,8 +72,6 @@ namespace SharpMTProto
 
         public async Task<byte[]> CreateAuthKey(CancellationToken cancellationToken)
         {
-            ThrowIfDisposed();
-
             IMTProtoConnection connection = _connectionFactory.Create(_transportConfigProvider.DefaultTransportConfig);
 
             try
@@ -154,8 +197,8 @@ namespace SharpMTProto
                         GB = dhOutParams.GB
                     };
 
-                    Log.Debug(string.Format("DH data: B={0}, G={1}, GB={2}, P={3}, S={4}.", b.ToHexString(), g.ToHexString(),
-                        dhOutParams.GB.ToHexString(), p.ToHexString(), authKey.ToHexString()));
+                    Log.Debug(string.Format("DH data: B={0}, G={1}, GB={2}, P={3}, S={4}.", b.ToHexString(), g.ToHexString(), dhOutParams.GB.ToHexString(),
+                        p.ToHexString(), authKey.ToHexString()));
 
                     // byte[] authKeyHash = ComputeSHA1(authKey).Skip(HashLength - 8).Take(8).ToArray(); // Not used in client.
                     authKeyAuxHash = ComputeSHA1(authKey).Take(8).ToArray();

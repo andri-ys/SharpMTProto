@@ -74,6 +74,7 @@
     <Compile Include="..\CommonAssemblyInfo.cs">
       <Link>Properties\CommonAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="AuthKeyNegotiator.cs" />
     <Compile Include="Defaults.cs" />
     <Compile Include="EncryptedMessage.cs" />
     <Compile Include="Exceptions.cs" />
@@ -81,8 +82,6 @@
     <Compile Include="Services\IEncryptionServices.cs" />
     <Compile Include="Services\IHashServices.cs" />
     <Compile Include="IMessage.cs" />
-    <Compile Include="MTProtoClient.AuthKey.cs" />
-    <Compile Include="MTProtoClient.Disposable.cs" />
     <Compile Include="Transport\ITransportConfigProvider.cs" />
     <Compile Include="Transport\TcpTransportConfig.cs" />
     <Compile Include="Transport\TcpTransportPacket.cs" />

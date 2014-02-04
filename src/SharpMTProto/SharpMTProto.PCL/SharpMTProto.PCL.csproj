@@ -69,11 +69,13 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <DocumentationFile>bin\Release\SharpMTProto.XML</DocumentationFile>
+    <NoWarn>1591</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\CommonAssemblyInfo.cs">
       <Link>Properties\CommonAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="AuthInfo.cs" />
     <Compile Include="AuthKeyNegotiator.cs" />
     <Compile Include="Defaults.cs" />
     <Compile Include="EncryptedMessage.cs" />

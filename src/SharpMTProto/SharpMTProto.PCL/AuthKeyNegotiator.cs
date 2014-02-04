@@ -65,12 +65,12 @@ namespace SharpMTProto
             return _hashServices.ComputeSHA1(data);
         }
 
-        public async Task<byte[]> CreateAuthKey()
+        public async Task<AuthInfo> CreateAuthKey()
         {
             return await CreateAuthKey(CancellationToken.None);
         }
 
-        public async Task<byte[]> CreateAuthKey(CancellationToken cancellationToken)
+        public async Task<AuthInfo> CreateAuthKey(CancellationToken cancellationToken)
         {
             IMTProtoConnection connection = _connectionFactory.Create(_transportConfigProvider.DefaultTransportConfig);
 
@@ -101,11 +101,13 @@ namespace SharpMTProto
                     resPQ.ServerPublicKeyFingerprints.Aggregate("public keys fingerprints:", (text, fingerprint) => text + " " + fingerprint.ToString("X8"))));
 
                 Int128 serverNonce = resPQ.ServerNonce;
+                byte[] serverNonceBytes = serverNonce.ToBytes();
 
                 // Requesting DH params.
                 PQInnerData pqInnerData;
                 ReqDHParamsArgs reqDhParamsArgs = CreateReqDhParamsArgs(resPQ, out pqInnerData);
                 Int256 newNonce = pqInnerData.NewNonce;
+                byte[] newNonceBytes = newNonce.ToBytes();
 
                 Log.Debug(string.Format("Requesting DH params with the new nonce: {0:X32}...", newNonce));
 
@@ -135,7 +137,7 @@ namespace SharpMTProto
 
                 byte[] tmpAesKey;
                 byte[] tmpAesIV;
-                ComputeTmpAesKeyAndIV(newNonce, serverNonce, out tmpAesKey, out tmpAesIV);
+                ComputeTmpAesKeyAndIV(newNonceBytes, serverNonceBytes, out tmpAesKey, out tmpAesIV);
 
                 Log.Debug("Decrypting server DH inner data...");
 
@@ -227,7 +229,8 @@ namespace SharpMTProto
 
                         Log.Debug(string.Format("Negotiated auth key: {0}.", authKey.ToHexString()));
 
-                        return authKey;
+                        var initialSalt = ComputeInitialSalt(newNonceBytes, serverNonceBytes);
+                        return new AuthInfo(authKey, initialSalt);
                     }
                     var dhGenRetry = setClientDHParamsAnswer as DhGenRetry;
                     if (dhGenRetry != null)
@@ -266,6 +269,14 @@ namespace SharpMTProto
                     connection.Dispose();
                 }
             }
+        }
+
+        private UInt64 ComputeInitialSalt(byte[] newNonceBytes, byte[] serverNonceBytes)
+        {
+            var x = newNonceBytes.ToUInt64();
+            var y = serverNonceBytes.ToUInt64();
+            var initialSalt = x ^ y;
+            return initialSalt;
         }
 
         private Int128 ComputeNewNonceHash(Int256 newNonce, byte num, byte[] authKeyAuxHash)
@@ -341,11 +352,8 @@ namespace SharpMTProto
             return serverDHInnerData;
         }
 
-        private void ComputeTmpAesKeyAndIV(Int256 newNonce, Int128 serverNonce, out byte[] tmpAesKey, out byte[] tmpAesIV)
+        private void ComputeTmpAesKeyAndIV(byte[] newNonceBytes, byte[] serverNonceBytes, out byte[] tmpAesKey, out byte[] tmpAesIV)
         {
-            byte[] newNonceBytes = newNonce.ToBytes();
-            byte[] serverNonceBytes = serverNonce.ToBytes();
-
             // SHA1(new_nonce + server_nonce).
             byte[] nPsHash = ComputeSHA1(ArrayUtils.Combine(newNonceBytes, serverNonceBytes));
 

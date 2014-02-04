@@ -13,7 +13,6 @@ using Catel.IoC;
 using Catel.Logging;
 using FluentAssertions;
 using Moq;
-using MTProtoSchema;
 using NUnit.Framework;
 using SharpMTProto.Services;
 using SharpMTProto.Transport;
@@ -78,8 +77,9 @@ namespace SharpMTProto.Tests
 
             var authKeyNegotiator = typeFactory.CreateInstance<AuthKeyNegotiator>();
 
-            byte[] authKey = await authKeyNegotiator.CreateAuthKey();
-            authKey.ShouldAllBeEquivalentTo(TestData.AuthKey);
+            var authInfo = await authKeyNegotiator.CreateAuthKey();
+            authInfo.AuthKey.ShouldAllBeEquivalentTo(TestData.AuthKey);
+            authInfo.InitialSalt.Should().Be(TestData.InitialSalt);
         }
     }
 }

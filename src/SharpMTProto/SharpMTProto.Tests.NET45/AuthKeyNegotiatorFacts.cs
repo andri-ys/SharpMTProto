@@ -69,8 +69,6 @@ namespace SharpMTProto.Tests
             serviceLocator.RegisterType<IKeyChain, KeyChain>();
             serviceLocator.RegisterType<IMTProtoConnectionFactory, MTProtoConnectionFactory>();
 
-            TLRig.Default.PrepareSerializersForAllTLObjectsInAssembly(typeof (ITLMethods).Assembly);
-
             var keyChain = serviceLocator.ResolveType<IKeyChain>();
             keyChain.AddKeys(TestData.TestPublicKeys);
 

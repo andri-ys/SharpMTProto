@@ -15,6 +15,7 @@ using System.Threading.Tasks;
 using BigMath.Utils;
 using Catel;
 using Catel.Logging;
+using Catel.Reflection;
 using MTProtoSchema;
 using SharpMTProto.Annotations;
 using SharpMTProto.Services;
@@ -69,6 +70,8 @@ namespace SharpMTProto
 
             DefaultRpcTimeout = Defaults.RpcTimeout;
             DefaultConnectTimeout = Defaults.ConnectTimeout;
+
+            _tlRig.PrepareSerializersForAllTLObjectsInAssembly(typeof(ITLAsyncMethods).GetAssemblyEx());
 
             _sessionId = GetNextSessionId();
 

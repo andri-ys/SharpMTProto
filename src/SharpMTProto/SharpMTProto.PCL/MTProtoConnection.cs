@@ -121,13 +121,19 @@ namespace SharpMTProto
             _outMessages.OnNext(message);
         }
 
-        public async Task<TResponse> SendMessage<TResponse>(object requestMessageDataObject, TimeSpan timeout, MessageType messageType) where TResponse : class
+        public async Task<TResponse> SendMessage<TResponse>(object requestMessageDataObject, TimeSpan timeout, MessageType messageType)
         {
             ThrowIfDiconnected();
 
             byte[] messageData = _tlRig.Serialize(requestMessageDataObject);
 
-            Task<TResponse> resultTask = _responses.Select(o => o as TResponse).Where(r => r != null).FirstAsync().Timeout(timeout).ToTask(_connectionCancellationToken);
+            Task<TResponse> resultTask = 
+                _responses
+                .Where(o => o is TResponse)
+                .Select(o => (TResponse) o)
+                .FirstAsync()
+                .Timeout(timeout)
+                .ToTask(_connectionCancellationToken);
 
             switch (messageType)
             {
@@ -159,7 +165,7 @@ namespace SharpMTProto
         /// <param name="timeout">Timeout.</param>
         /// <returns>Response.</returns>
         /// <exception cref="TimeoutException">When response is not captured within a specified timeout.</exception>
-        public async Task<TResponse> SendPlainMessage<TResponse>(object requestMessageDataObject, TimeSpan timeout) where TResponse : class
+        public async Task<TResponse> SendPlainMessage<TResponse>(object requestMessageDataObject, TimeSpan timeout)
         {
             return await SendMessage<TResponse>(requestMessageDataObject, timeout, MessageType.Plain);
         }
@@ -187,7 +193,7 @@ namespace SharpMTProto
             SendMessage(message);
         }
 
-        public async Task<TResponse> SendEncryptedMessage<TResponse>(object requestMessageDataObject, TimeSpan timeout) where TResponse : class
+        public async Task<TResponse> SendEncryptedMessage<TResponse>(object requestMessageDataObject, TimeSpan timeout)
         {
             return await SendMessage<TResponse>(requestMessageDataObject, timeout, MessageType.Encrypted);
         }

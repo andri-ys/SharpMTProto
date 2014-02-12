@@ -33,7 +33,7 @@ namespace SharpMTProto
         /// <param name="timeout">Timeout.</param>
         /// <returns>Response.</returns>
         /// <exception cref="TimeoutException">When response is not captured within a specified timeout.</exception>
-        Task<TResponse> SendPlainMessage<TResponse>(object requestMessageDataObject, TimeSpan timeout) where TResponse : class;
+        Task<TResponse> SendPlainMessage<TResponse>(object requestMessageDataObject, TimeSpan timeout);
         
         /// <summary>
         ///     Sends encrypted message and waits for a response.
@@ -43,7 +43,7 @@ namespace SharpMTProto
         /// <param name="timeout">Timeout.</param>
         /// <returns>Response.</returns>
         /// <exception cref="TimeoutException">When response is not captured within a specified timeout.</exception>
-        Task<TResponse> SendEncryptedMessage<TResponse>(object requestMessageDataObject, TimeSpan timeout) where TResponse : class;
+        Task<TResponse> SendEncryptedMessage<TResponse>(object requestMessageDataObject, TimeSpan timeout);
         
         /// <summary>
         /// Diconnect.
@@ -60,7 +60,7 @@ namespace SharpMTProto
         /// </summary>
         Task<MTProtoConnectResult> Connect(CancellationToken cancellationToken);
 
-        Task<TResponse> SendMessage<TResponse>(object requestMessageDataObject, TimeSpan timeout, MessageType messageType) where TResponse : class;
+        Task<TResponse> SendMessage<TResponse>(object requestMessageDataObject, TimeSpan timeout, MessageType messageType);
     }
 
     public enum MTProtoConnectionState

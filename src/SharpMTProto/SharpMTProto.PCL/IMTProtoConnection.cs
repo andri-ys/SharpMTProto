@@ -61,6 +61,7 @@ namespace SharpMTProto
         Task<MTProtoConnectResult> Connect(CancellationToken cancellationToken);
 
         Task<TResponse> SendMessage<TResponse>(object requestMessageDataObject, TimeSpan timeout, MessageType messageType);
+        Task<TResponse> SendEncryptedMessage<TResponse>(object requestMessageDataObject);
     }
 
     public enum MTProtoConnectionState

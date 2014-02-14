@@ -193,6 +193,11 @@ namespace SharpMTProto
             SendMessage(message);
         }
 
+        public async Task<TResponse> SendEncryptedMessage<TResponse>(object requestMessageDataObject)
+        {
+            return await SendMessage<TResponse>(requestMessageDataObject, DefaultRpcTimeout, MessageType.Encrypted);
+        }
+
         public async Task<TResponse> SendEncryptedMessage<TResponse>(object requestMessageDataObject, TimeSpan timeout)
         {
             return await SendMessage<TResponse>(requestMessageDataObject, timeout, MessageType.Encrypted);

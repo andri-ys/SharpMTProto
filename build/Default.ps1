@@ -1,10 +1,12 @@
 ﻿Properties {
+    $solution_name = "SharpMTProto"
     $config = 'Debug'
     $packageVersion = $null
     $build_dir = Split-Path $psake.build_script_file
-    $code_dir = "$build_dir\..\src"
-    $solution_path = "$code_dir\SharpMTProto\SharpMTProto.sln"
-    $assembly_info_path = "$code_dir\SharpMTProto\CommonAssemblyInfo.cs"
+    $code_dir = "$build_dir\..\src\$solution_name"
+    $solution_path = "$code_dir\$solution_name.sln"
+    $assembly_info_path = "$code_dir\CommonAssemblyInfo.cs"
+    $nuspec_path = "$code_dir\$solution_name.nuspec"
 }
 
 FormatTaskName (("-"*25) + "[{0}]" + ("-"*25))
@@ -14,18 +16,18 @@ Task Default -depends RebuildAndPack
 Task RebuildAndPack -Depends Rebuild, Pack
 
 Task ValidateConfig {
-  Write-Host "Build configuration: $config."
-  Assert ( 'Debug','Release' -contains $config) -failureMessage "Invalid config: $config; Valid values are 'Debug' and 'Release'."
+    Write-Host "Build configuration: $config."
+    Assert ( 'Debug','Release' -contains $config) -failureMessage "Invalid config: $config; Valid values are 'Debug' and 'Release'."
 }
 
 Task Build -depends ValidateConfig -description "Builds outdated artifacts." {
-  Write-Host "Building SharpMTProto.sln" -ForegroundColor Green
-  Exec { msbuild "$solution_path" /t:Build /p:Configuration=$config /v:quiet } 
+    Write-Host "Building soulution..." -ForegroundColor Green
+    Exec { msbuild "$solution_path" /t:Build /p:Configuration=$config /v:quiet } 
 }
 
 Task Clean -depends ValidateConfig -description "Deletes all build artifacts." {
-  Write-Host "Cleaning SharpMTProto.sln" -ForegroundColor Green
-  Exec { msbuild "$solution_path" /t:Clean /p:Configuration=$config /v:quiet } 
+    Write-Host "Cleaning solution..." -ForegroundColor Green
+    Exec { msbuild "$solution_path" /t:Clean /p:Configuration=$config /v:quiet }
 }
 
 Task Rebuild -depends Clean,Build -description "Rebuilds all artifacts from source."
@@ -35,7 +37,7 @@ Task Pack -depends Build -description "Packs to a NuGet package." {
     $packages_dir = "$build_dir\output\$config\"
     if (Test-Path $packages_dir)
     {
-      rd $packages_dir -rec -force | out-null
+        rd $packages_dir -rec -force | out-null
     }
     mkdir $packages_dir | out-null
 
@@ -46,8 +48,8 @@ Task Pack -depends Build -description "Packs to a NuGet package." {
         $regex = [regex] 'AssemblyVersion\("(?<Version>[0-9]+(?:\.(?:[0-9]+|\*)){1,3})"\)'
         $packageVersion = $regex.Match($assembly_info_content).Groups['Version'].Value
     }
-    
+
     Write-Host "Package version: $packageVersion."
-    
-    Exec { nuget pack "$code_dir\SharpMTProto\SharpMTProto.nuspec" -Properties "config=$config" -Symbols -Version "$packageVersion" -OutputDirectory "$packages_dir" }
+
+    Exec { nuget pack $nuspec_path -Properties "config=$config" -Symbols -Version "$packageVersion" -OutputDirectory "$packages_dir" }
 }

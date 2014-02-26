@@ -1,4 +1,7 @@
 # SharpMTProto
+
+**WARNING: the library is not implemented yet (consider donation to speed up development process).**
+
 C# [MTProto Mobile Protocol](http://core.telegram.org/mtproto) implementation.
 
 To install SharpMTProto, run the following command in the [Package Manager Console](http://docs.nuget.org/docs/start-here/using-the-package-manager-console):
